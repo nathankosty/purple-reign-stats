@@ -122,7 +122,7 @@ export function PlayerRecords() {
         <div className="flex items-center justify-center mt-20">
           <div className="text-center max-w-md">
             <img
-              src="/logo.svg"
+              src="/logo.png"
               alt="Purple Reign"
               className="w-24 h-24 mx-auto mb-4 opacity-40 drop-shadow-[0_0_12px_rgba(168,85,247,0.3)]"
             />

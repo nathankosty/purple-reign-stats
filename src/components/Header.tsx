@@ -10,7 +10,7 @@ export function Header() {
     <header className="flex items-center justify-between px-6 py-4 border-b border-purple-900/50 bg-[#0d0717]/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="flex items-center gap-3">
         <Image
-          src="/logo.svg"
+          src="/logo.png"
           alt="Purple Reign"
           width={40}
           height={40}

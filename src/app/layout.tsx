@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Purple Reign Stats",
   description: "Most Valuable Points - Ultimate Frisbee Analytics",
   icons: {
-    icon: "/logo.svg",
+    icon: "/logo.png",
   },
 };
 
