@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0514;
+  --foreground: #e8d5f5;
 }
 
 @theme inline {
@@ -12,15 +12,36 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d0717;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3b1d6e;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5b2d9e;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  accent-color: #7c3aed;
+}
+
+/* Range input styling */
+input[type="range"] {
+  accent-color: #7c3aed;
 }
