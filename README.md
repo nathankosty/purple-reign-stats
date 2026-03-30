@@ -1,5 +1,7 @@
 # Purple Reign Stats
 
+**[Live App](https://purple-reign-stats.vercel.app/)**
+
 A Next.js web app that analyzes Ultimate Frisbee event-level statistics from UltiAnalytics and surfaces each player's most valuable points across a season.
 
 The app fetches CSV data from the UltiAnalytics API, parses it client-side, and applies a configurable scoring system to rank every player's contribution on a per-point basis — factoring in completions, goals, assists, defensive blocks, turnovers, chain bonuses, and impact sequences.
