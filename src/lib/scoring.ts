@@ -29,9 +29,9 @@ function getScoringPossessionTouches(events: RawEvent[], player: string): number
       // Deduplicate: if someone catches and then throws, passer on next = receiver on this
       // We're counting discrete event involvements, which is fine for the bonus check.
     } else {
-      // Hit a Defense event going backward — if it's not the opponent turning it over
+      // Hit a Defense event going backward. If it's not the opponent turning it over
       // (which gives us the disc back), stop.
-      // Actually, a Defense Throwaway by opponent gives us the disc — that's the start of possession.
+      // Actually, a Defense Throwaway by opponent gives us the disc, so that's the start of possession.
       if (ev.action === 'Throwaway' || ev.action === 'D' || ev.action === 'Callahan') {
         break;
       }

@@ -80,7 +80,7 @@ export function Sidebar({ filters, onChange }: SidebarProps) {
             });
             return (
               <option key={key} value={key}>
-                vs {g.opponent} ({date}) — {g.finalScore.ours}-{g.finalScore.theirs}
+                vs {g.opponent} ({date}) · {g.finalScore.ours}-{g.finalScore.theirs}
               </option>
             );
           })}

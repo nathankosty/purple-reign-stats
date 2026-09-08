@@ -53,7 +53,7 @@ function detectHandlers(
   // Sort by throw ratio descending. Players with ratio > 0.52 (throw more than catch) are handlers.
   candidates.sort((a, b) => b.ratio - a.ratio);
 
-  // Take players with throw ratio > 0.52 — they touch the disc as a thrower more than as a receiver
+  // Take players with throw ratio > 0.52: they touch the disc as a thrower more than as a receiver
   return candidates.filter((c) => c.ratio > 0.52).map((c) => c.player);
 }
 
@@ -103,7 +103,7 @@ export function RoleManager() {
         </button>
         {suggestedHandlers.length > 0 && (
           <p className="text-xs text-purple-400/40 mt-1">
-            Based on throw-to-catch ratio — players who throw more than they receive are flagged as handlers.
+            Based on throw-to-catch ratio: players who throw more than they receive are flagged as handlers.
           </p>
         )}
       </div>
