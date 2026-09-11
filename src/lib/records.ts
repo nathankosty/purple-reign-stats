@@ -277,10 +277,8 @@ export function computeAllRecords(
     records: longestPoints,
   });
 
-  // Highest value point scores (all-time)
-  // We need to compute this from playerScores, but we can do it from points directly
-  // We'll import scoring here, but to avoid circular deps, let's compute inline
-  // Actually, let's accept playerScores as a param
+  // The all-time point value leaderboard needs playerScores, so it lives in
+  // computeMVPPointRecords below.
 
   return categories;
 }

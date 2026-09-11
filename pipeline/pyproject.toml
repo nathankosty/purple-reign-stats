@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reign-pipeline"
+version = "0.1.0"
+description = "PySpark pipeline over Purple Reign's UltiAnalytics event export"
+requires-python = ">=3.11"
+# No runtime dependencies on purpose: Databricks provides its own Spark and Delta,
+# and installing pyspark on top of a cluster's runtime causes version conflicts.
+dependencies = []
+
+[project.optional-dependencies]
+local = ["delta-spark==4.4.0"]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

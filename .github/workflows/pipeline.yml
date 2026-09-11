@@ -1,0 +1,27 @@
+name: pipeline
+
+on:
+  push:
+    paths: ["pipeline/**", ".github/workflows/pipeline.yml"]
+  pull_request:
+    paths: ["pipeline/**", ".github/workflows/pipeline.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[local,dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest

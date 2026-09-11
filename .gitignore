@@ -42,3 +42,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python pipeline
+pipeline/.venv/
+pipeline/data/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+spark-warehouse/
+metastore_db/
+derby.log

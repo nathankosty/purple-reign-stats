@@ -2,13 +2,15 @@
 
 **[Live App](https://purple-reign-stats.vercel.app/)** · Ultimate Frisbee analytics for a full competitive season
 
+[![pipeline tests](https://github.com/nathankosty/purple-reign-stats/actions/workflows/pipeline.yml/badge.svg)](https://github.com/nathankosty/purple-reign-stats/actions/workflows/pipeline.yml)
+
 ![Top points leaderboard](docs/screenshots/top-points.png)
 
 Box-score stats lie about ultimate. Goals, assists, and blocks describe three moments in a point that may have contained forty throws, so the players who quietly move the disc every possession show up as zeroes, and the player who caught one easy endzone pass leads the team.
 
 Purple Reign Stats replaces the box score with a **per-point value model**. It pulls a season of event-level data from UltiAnalytics, reconstructs every point throw by throw, and scores each player's contribution to *that specific point*, so you can ask "what were Nathan's twenty most valuable points this season?" and get an answer that accounts for the whole possession, not just who touched it last.
 
-Built for my team, Purple Reign, and running on our real season data: 8 tournaments, 48 players.
+Built for my team, Purple Reign, and running on our real season data: 8 tournaments, 48 players. Alongside the web app, a [PySpark pipeline](#data-pipeline) rebuilds the same data as Delta Lake tables with tests and data quality checks.
 
 ## The scoring model
 
@@ -73,7 +75,7 @@ UltiAnalytics CSV export
    UI components
 ```
 
-The whole pipeline runs client-side after a single CSV fetch: no database, no build step over the data. Re-scoring the full season with different weights is instantaneous because it never leaves memory.
+The web app does all of this client-side after a single CSV fetch: no database, no build step over the data. Re-scoring the full season with different weights is instantaneous because it never leaves memory.
 
 ```
 src/
@@ -98,9 +100,32 @@ src/
     └── records.ts            # Records computation
 ```
 
+## Data pipeline
+
+Doing everything in the browser is right for an interactive tool, but it leaves the data locked inside the app. [`pipeline/`](pipeline/) is a PySpark pipeline that rebuilds the same export as layered Delta Lake tables, so the season can be queried and checked on its own.
+
+```
+UltiAnalytics CSV
+        │
+        ▼
+  bronze.raw_events ──── raw rows kept as strings, plus ingest metadata
+        │
+        ▼
+  silver.events ──────── typed plays, ordered by game clock with window functions
+  silver.event_players ─ 28 lineup columns unpivoted to one row per player
+  silver.points ──────── one row per point, result taken from the scoreboard
+  silver.games ───────── final scores
+        │
+        ▼
+  quality checks ─────── errors fail the run, warnings are reported
+```
+
+Its totals match the app exactly (8,156 events, 799 points, 44 games), and its tests run on every push through GitHub Actions. The quality checks also turned up problems the app can't see, listed under [Known limitations](#known-limitations). Design decisions and the roadmap (gold scoring tables, then deployment to Databricks) are in the [pipeline README](pipeline/README.md).
+
 ## Tech stack
 
-Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, PapaParse.
+- **Web app:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, PapaParse
+- **Data pipeline:** Python, PySpark 4, Delta Lake, pytest, Ruff, GitHub Actions
 
 ## Running locally
 
@@ -109,11 +134,13 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The app fetches live data from UltiAnalytics on load, so no database, API keys, or seed data are required.
+Open [http://localhost:3000](http://localhost:3000). The app fetches live data from UltiAnalytics on load, so no database, API keys, or seed data are required. To run the pipeline, see [pipeline/README.md](pipeline/README.md#running-locally).
 
 ## Known limitations
 
 - **Weights are unvalidated.** They encode reasoned opinions about ultimate, not a fit against a win-probability model. A player's score is a measure of *involvement weighted by judgment*, not a proven contribution to winning.
 - **Possession reconstruction is heuristic.** `getScoringPossessionTouches` walks the event log backward to find the scoring possession's start; unusual event sequences in the source data can end that walk early.
 - **Touch counts overstate disc-handling.** Catching and then throwing registers twice (once as receiver on one event, once as passer on the next), so a "30 touches" point reflects roughly half that many actual possessions of the disc. The number is consistent across players, so it ranks correctly; it just isn't a literal count.
+- **Lineup errors drop actions.** The app only scores players in a point's recorded lineup. The pipeline found 7 points where that lineup is wrong, so 52 throws, catches, and blocks in them are never credited.
+- **Thrown Callahans go unpenalized.** Every Callahan in the current export was thrown by Purple Reign, not caught. The model has no case for that, so the thrower loses nothing while an ordinary throwaway costs 3.
 - **Single-team scope.** The upstream team ID is hardcoded in the API route; supporting other teams means making it a parameter.
