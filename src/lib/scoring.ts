@@ -17,26 +17,16 @@ export const DEFAULT_WEIGHTS: ScoringWeights = {
 };
 
 function getScoringPossessionTouches(events: RawEvent[], player: string): number {
-  // Walk backward from the end to find the final scoring possession.
-  // The scoring possession is the consecutive run of Offense events ending with the Goal,
-  // unbroken by any turnover (Defense event that isn't the result of your team's action).
+  // The scoring possession is the run of Offense events at the end of the point.
+  // Walking backward, the first Defense event (a D, their throwaway, or our pull)
+  // is where that possession began. Catch-then-throw counts twice, which is fine
+  // for a >= 3 threshold.
   let touches = 0;
   for (let i = events.length - 1; i >= 0; i--) {
     const ev = events[i];
-    if (ev.eventType === 'Offense') {
-      if (ev.passer === player) touches++;
-      if (ev.receiver === player) touches++;
-      // Deduplicate: if someone catches and then throws, passer on next = receiver on this
-      // We're counting discrete event involvements, which is fine for the bonus check.
-    } else {
-      // Hit a Defense event going backward. If it's not the opponent turning it over
-      // (which gives us the disc back), stop.
-      // Actually, a Defense Throwaway by opponent gives us the disc, so that's the start of possession.
-      if (ev.action === 'Throwaway' || ev.action === 'D' || ev.action === 'Callahan') {
-        break;
-      }
-      break;
-    }
+    if (ev.eventType !== 'Offense') break;
+    if (ev.passer === player) touches++;
+    if (ev.receiver === player) touches++;
   }
   return touches;
 }
