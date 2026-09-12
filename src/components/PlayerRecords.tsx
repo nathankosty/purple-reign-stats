@@ -17,7 +17,6 @@ function RecordTable({ category }: { category: RecordCategory }) {
   return (
     <div className="bg-[#1a0f2e]/80 border border-purple-800/30 rounded-xl overflow-hidden">
       <div className="px-4 py-3 border-b border-purple-800/30 flex items-center gap-2">
-        <span className="text-lg">{category.icon}</span>
         <h3 className="text-sm font-semibold text-purple-200">{category.title}</h3>
       </div>
       <div className="divide-y divide-purple-800/20">
@@ -41,7 +40,7 @@ function RecordTable({ category }: { category: RecordCategory }) {
                     : 'text-purple-500/50'
                 }`}
               >
-                {i === 0 ? '\ud83e\udd47' : i === 1 ? '\ud83e\udd48' : i === 2 ? '\ud83e\udd49' : `#${i + 1}`}
+                #{i + 1}
               </span>
             )}
 

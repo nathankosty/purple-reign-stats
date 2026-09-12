@@ -7,18 +7,18 @@ interface EventTimelineProps {
   highlightPlayer: string;
 }
 
-function getActionIcon(event: RawEvent): string {
-  if (event.action === 'Goal' && event.eventType === 'Offense') return '\u2b50';
-  if (event.action === 'Goal' && event.eventType === 'Defense') return '\ud83d\udfe5';
-  if (event.action === 'Catch') return '\u2705';
-  if (event.action === 'Throwaway' && event.eventType === 'Offense') return '\u274c';
-  if (event.action === 'Throwaway' && event.eventType === 'Defense') return '\ud83d\udd04';
-  if (event.action === 'D') return '\ud83d\udee1\ufe0f';
-  if (event.action === 'Drop') return '\ud83d\udc4e';
-  if (event.action === 'Pull' || event.action === 'PullOb') return '\ud83c\udfc8';
-  if (event.action === 'Callahan') return '\ud83c\udf1f';
-  if (event.action === 'Stall') return '\u23f0';
-  return '\u26aa';
+// Dot color for what the event meant for Purple Reign: yellow scored, red cost us,
+// green kept the disc moving, blue won it back.
+function actionTone(event: RawEvent): string {
+  const ours = event.eventType === 'Offense';
+  if (event.action === 'Goal') return ours ? 'bg-yellow-400' : 'bg-red-500';
+  // An Offense Callahan is one of our throws caught for a Callahan.
+  if (event.action === 'Callahan') return ours ? 'bg-red-500' : 'bg-yellow-400';
+  if (event.action === 'Catch') return 'bg-emerald-400';
+  if (event.action === 'Throwaway') return ours ? 'bg-red-400' : 'bg-sky-400';
+  if (event.action === 'D') return 'bg-sky-400';
+  if (event.action === 'Drop' || event.action === 'Stall') return 'bg-red-400';
+  return 'bg-purple-400/50';
 }
 
 function describeEvent(event: RawEvent): string {
@@ -28,10 +28,10 @@ function describeEvent(event: RawEvent): string {
     return `${defender || 'Team'} pulls${action === 'PullOb' ? ' (OB)' : ''}`;
   }
   if (action === 'Catch') {
-    return `${passer || '?'} \u2192 ${receiver || '?'}`;
+    return `${passer || '?'} → ${receiver || '?'}`;
   }
   if (action === 'Goal' && eventType === 'Offense') {
-    return `${passer || '?'} \u2192 ${receiver || '?'} GOAL!`;
+    return `${passer || '?'} → ${receiver || '?'} GOAL!`;
   }
   if (action === 'Goal' && eventType === 'Defense') {
     return 'Opponent scores';
@@ -87,7 +87,10 @@ export function EventTimeline({ events, highlightPlayer }: EventTimelineProps) {
                   : 'text-purple-300/70'
               }`}
             >
-              <span className="text-base shrink-0 mt-0.5">{getActionIcon(ev)}</span>
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${actionTone(ev)}`}
+                title={ev.action}
+              />
               <span className="flex-1">{describeEvent(ev)}</span>
               <span className="text-[10px] text-purple-500/50 shrink-0 mt-1">
                 {ev.eventType === 'Offense' ? 'O' : 'D'}

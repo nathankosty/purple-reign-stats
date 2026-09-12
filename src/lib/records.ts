@@ -176,7 +176,6 @@ function findTopNTournamentRecords(
 
 export interface RecordCategory {
   title: string;
-  icon: string;
   records: Record[];
 }
 
@@ -192,70 +191,60 @@ export function computeAllRecords(
   // Most completions (throws) in a point
   categories.push({
     title: 'Most Throws in a Point',
-    icon: '\ud83d\udcab',
     records: findTopNPointRecords(points, players, isCompletion, topN),
   });
 
   // Most completions in a game
   categories.push({
     title: 'Most Throws in a Game',
-    icon: '\ud83d\udcab',
     records: findTopNGameRecords(games, players, isCompletion, topN),
   });
 
   // Most catches in a point
   categories.push({
     title: 'Most Catches in a Point',
-    icon: '\ud83e\udd32',
     records: findTopNPointRecords(points, players, isCatch, topN),
   });
 
   // Most catches in a game
   categories.push({
     title: 'Most Catches in a Game',
-    icon: '\ud83e\udd32',
     records: findTopNGameRecords(games, players, isCatch, topN),
   });
 
   // Most Ds in a point
   categories.push({
     title: 'Most Ds in a Point',
-    icon: '\ud83d\udee1\ufe0f',
     records: findTopNPointRecords(points, players, isD, topN),
   });
 
   // Most Ds in a game
   categories.push({
     title: 'Most Ds in a Game',
-    icon: '\ud83d\udee1\ufe0f',
     records: findTopNGameRecords(games, players, isD, topN),
   });
 
   // Most goals in a game
   categories.push({
     title: 'Most Goals in a Game',
-    icon: '\u2b50',
     records: findTopNGameRecords(games, players, isGoal, topN),
   });
 
   // Most goals in a tournament
   categories.push({
     title: 'Most Goals in a Tournament',
-    icon: '\u2b50',
     records: findTopNTournamentRecords(games, tournaments, players, isGoal, topN),
   });
 
   // Most assists in a game
   categories.push({
     title: 'Most Assists in a Game',
-    icon: '\ud83c\udfaf',
     records: findTopNGameRecords(games, players, isAssist, topN),
   });
 
   // Most assists in a tournament
   categories.push({
     title: 'Most Assists in a Tournament',
-    icon: '\ud83c\udfaf',
     records: findTopNTournamentRecords(games, tournaments, players, isAssist, topN),
   });
 
@@ -273,7 +262,6 @@ export function computeAllRecords(
 
   categories.push({
     title: 'Longest Points (seconds)',
-    icon: '\u23f1\ufe0f',
     records: longestPoints,
   });
 
@@ -355,7 +343,6 @@ export function computePlayerRecords(
   const scores = playerScores.get(player) || [];
   categories.push({
     title: 'Best Point Value Scores',
-    icon: '\ud83c\udfc6',
     records: scores.slice(0, topN).map((ps) => ({
       label: '',
       value: parseFloat(ps.score.toFixed(1)),
@@ -366,29 +353,29 @@ export function computePlayerRecords(
   });
 
   // Throws
-  categories.push({ title: 'Most Throws in a Point', icon: '\ud83d\udcab', records: playerPointRecords(isCompletion) });
-  categories.push({ title: 'Most Throws in a Game', icon: '\ud83d\udcab', records: playerGameRecords(isCompletion) });
-  categories.push({ title: 'Most Throws in a Tournament', icon: '\ud83d\udcab', records: playerTournamentRecords(isCompletion) });
+  categories.push({ title: 'Most Throws in a Point', records: playerPointRecords(isCompletion) });
+  categories.push({ title: 'Most Throws in a Game', records: playerGameRecords(isCompletion) });
+  categories.push({ title: 'Most Throws in a Tournament', records: playerTournamentRecords(isCompletion) });
 
   // Catches
-  categories.push({ title: 'Most Catches in a Point', icon: '\ud83e\udd32', records: playerPointRecords(isCatch) });
-  categories.push({ title: 'Most Catches in a Game', icon: '\ud83e\udd32', records: playerGameRecords(isCatch) });
-  categories.push({ title: 'Most Catches in a Tournament', icon: '\ud83e\udd32', records: playerTournamentRecords(isCatch) });
+  categories.push({ title: 'Most Catches in a Point', records: playerPointRecords(isCatch) });
+  categories.push({ title: 'Most Catches in a Game', records: playerGameRecords(isCatch) });
+  categories.push({ title: 'Most Catches in a Tournament', records: playerTournamentRecords(isCatch) });
 
   // Ds
-  categories.push({ title: 'Most Ds in a Point', icon: '\ud83d\udee1\ufe0f', records: playerPointRecords(isD) });
-  categories.push({ title: 'Most Ds in a Game', icon: '\ud83d\udee1\ufe0f', records: playerGameRecords(isD) });
-  categories.push({ title: 'Most Ds in a Tournament', icon: '\ud83d\udee1\ufe0f', records: playerTournamentRecords(isD) });
+  categories.push({ title: 'Most Ds in a Point', records: playerPointRecords(isD) });
+  categories.push({ title: 'Most Ds in a Game', records: playerGameRecords(isD) });
+  categories.push({ title: 'Most Ds in a Tournament', records: playerTournamentRecords(isD) });
 
   // Goals
-  categories.push({ title: 'Most Goals in a Point', icon: '\u2b50', records: playerPointRecords(isGoal) });
-  categories.push({ title: 'Most Goals in a Game', icon: '\u2b50', records: playerGameRecords(isGoal) });
-  categories.push({ title: 'Most Goals in a Tournament', icon: '\u2b50', records: playerTournamentRecords(isGoal) });
+  categories.push({ title: 'Most Goals in a Point', records: playerPointRecords(isGoal) });
+  categories.push({ title: 'Most Goals in a Game', records: playerGameRecords(isGoal) });
+  categories.push({ title: 'Most Goals in a Tournament', records: playerTournamentRecords(isGoal) });
 
   // Assists
-  categories.push({ title: 'Most Assists in a Point', icon: '\ud83c\udfaf', records: playerPointRecords(isAssist) });
-  categories.push({ title: 'Most Assists in a Game', icon: '\ud83c\udfaf', records: playerGameRecords(isAssist) });
-  categories.push({ title: 'Most Assists in a Tournament', icon: '\ud83c\udfaf', records: playerTournamentRecords(isAssist) });
+  categories.push({ title: 'Most Assists in a Point', records: playerPointRecords(isAssist) });
+  categories.push({ title: 'Most Assists in a Game', records: playerGameRecords(isAssist) });
+  categories.push({ title: 'Most Assists in a Tournament', records: playerTournamentRecords(isAssist) });
 
   // Longest points this player was on
   const longestPlayerPoints = [...playerPoints]
@@ -401,7 +388,7 @@ export function computePlayerRecords(
       context: formatContext(pt.tournament, pt.opponent, pt.dateTime),
       detail: `${pt.result === 'scored' ? 'Scored' : 'Scored against'} · ${pt.line === 'O' ? 'O-line' : 'D-line'} · ${pt.events.length} events`,
     }));
-  categories.push({ title: 'Longest Points (seconds)', icon: '\u23f1\ufe0f', records: longestPlayerPoints });
+  categories.push({ title: 'Longest Points (seconds)', records: longestPlayerPoints });
 
   // Career totals as a single-entry category
   let totalThrows = 0, totalCatches = 0, totalDs = 0, totalGoals = 0, totalAssists = 0, totalPoints = 0;
@@ -417,7 +404,6 @@ export function computePlayerRecords(
   }
   categories.unshift({
     title: 'Career Totals',
-    icon: '\ud83d\udcca',
     records: [
       { label: '', value: totalPoints, player: 'Points Played', context: '' },
       { label: '', value: totalThrows, player: 'Total Throws', context: '' },
@@ -446,7 +432,6 @@ export function computeMVPPointRecords(
 
   return {
     title: 'Highest Point Value Scores (All-Time)',
-    icon: '\ud83c\udfc6',
     records: allScores.slice(0, topN).map((ps) => ({
       label: '',
       value: parseFloat(ps.score.toFixed(1)),
