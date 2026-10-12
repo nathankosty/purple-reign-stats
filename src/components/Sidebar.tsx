@@ -16,7 +16,7 @@ export function Sidebar({ filters, onChange }: SidebarProps) {
   );
 
   return (
-    <aside className="w-full lg:w-72 shrink-0 bg-[#0d0717] border-r border-purple-900/30 p-5 space-y-6 overflow-y-auto">
+    <aside className="w-full lg:w-72 shrink-0 h-full bg-[#0d0717] border-r border-purple-900/30 p-5 space-y-6 overflow-y-auto">
       {/* Player selector */}
       <div>
         <label className="block text-xs font-semibold text-purple-300 uppercase tracking-wider mb-2">
