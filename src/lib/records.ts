@@ -368,12 +368,10 @@ export function computePlayerRecords(
   categories.push({ title: 'Most Ds in a Tournament', records: playerTournamentRecords(isD) });
 
   // Goals
-  categories.push({ title: 'Most Goals in a Point', records: playerPointRecords(isGoal) });
   categories.push({ title: 'Most Goals in a Game', records: playerGameRecords(isGoal) });
   categories.push({ title: 'Most Goals in a Tournament', records: playerTournamentRecords(isGoal) });
 
   // Assists
-  categories.push({ title: 'Most Assists in a Point', records: playerPointRecords(isAssist) });
   categories.push({ title: 'Most Assists in a Game', records: playerGameRecords(isAssist) });
   categories.push({ title: 'Most Assists in a Tournament', records: playerTournamentRecords(isAssist) });
 
