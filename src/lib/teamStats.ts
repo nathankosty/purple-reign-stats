@@ -46,6 +46,7 @@ export interface TournamentSummary {
   ties: number;
   totals: TeamTotals;
   leaders: ValueLeader[];
+  mvpRanks: PlayerRank[];
 }
 
 const isPass = (ev: RawEvent) =>
@@ -151,6 +152,105 @@ export function valueLeaders(
     .slice(0, topN);
 }
 
+// Where a player sat among everyone who played the same tournament. Ranking is
+// competition style, so two players tied for first are both first and the next
+// is third.
+export const MIN_THROWS_FOR_PCT = 10;
+
+export interface PlayerRank {
+  stat: string;
+  value: string;
+  rank: number | null;
+  pool: number;
+}
+
+interface Tally {
+  goals: number;
+  assists: number;
+  completions: number;
+  ds: number;
+  plusMinus: number;
+  throwaways: number;
+  attempts: number;
+}
+
+function tallyPlayers(points: Point[]): Map<string, Tally> {
+  const tallies = new Map<string, Tally>();
+  const entry = (player: string) => {
+    let t = tallies.get(player);
+    if (!t) {
+      t = { goals: 0, assists: 0, completions: 0, ds: 0, plusMinus: 0, throwaways: 0, attempts: 0 };
+      tallies.set(player, t);
+    }
+    return t;
+  };
+
+  for (const point of points) {
+    const swing = point.result === 'scored' ? 1 : -1;
+    for (const player of point.playersOnField) entry(player).plusMinus += swing;
+
+    for (const ev of point.events) {
+      if (ev.eventType === 'Offense') {
+        if (ev.action === 'Catch' || ev.action === 'Goal') {
+          if (ev.passer) {
+            const t = entry(ev.passer);
+            t.completions++;
+            t.attempts++;
+            if (ev.action === 'Goal') t.assists++;
+          }
+          if (ev.action === 'Goal' && ev.receiver) entry(ev.receiver).goals++;
+        } else if (ev.action === 'Throwaway' || ev.action === 'Stall' || ev.action === 'Callahan') {
+          if (ev.passer) {
+            const t = entry(ev.passer);
+            t.throwaways++;
+            t.attempts++;
+          }
+        }
+      } else if ((ev.action === 'D' || ev.action === 'Callahan') && ev.defender) {
+        entry(ev.defender).ds++;
+      }
+    }
+  }
+  return tallies;
+}
+
+export function rankPlayer(points: Point[], player: string): PlayerRank[] {
+  const tallies = tallyPlayers(points);
+  const mine = tallies.get(player);
+  if (!mine) return [];
+  const all = Array.from(tallies.values());
+
+  const rankOf = (values: number[], value: number) => values.filter((v) => v > value).length + 1;
+  const counting = (stat: string, pick: (t: Tally) => number, format?: (v: number) => string) => {
+    const values = all.map(pick);
+    const value = pick(mine);
+    return { stat, value: format ? format(value) : `${value}`, rank: rankOf(values, value), pool: values.length };
+  };
+
+  const ranks: PlayerRank[] = [
+    counting('goals', (t) => t.goals),
+    counting('assists', (t) => t.assists),
+    counting('completions', (t) => t.completions),
+    counting('Ds', (t) => t.ds),
+    counting('plus-minus', (t) => t.plusMinus, (v) => (v > 0 ? `+${v}` : `${v}`)),
+  ];
+
+  // Completion rate only means something once a player has thrown enough.
+  const eligible = all.filter((t) => t.attempts >= MIN_THROWS_FOR_PCT);
+  const pctOf = (t: Tally) => (t.attempts > 0 ? (t.completions / t.attempts) * 100 : 0);
+  ranks.push({
+    stat: 'completion',
+    value: mine.attempts > 0 ? `${pctOf(mine).toFixed(0)}%` : '-',
+    rank:
+      mine.attempts >= MIN_THROWS_FOR_PCT
+        ? rankOf(eligible.map(pctOf), pctOf(mine)) 
+        : null,
+    pool: eligible.length,
+  });
+
+  return ranks;
+}
+
 function longestRun(points: Point[], result: Point['result']): number {
   let best = 0;
   let current = 0;
@@ -198,6 +298,7 @@ export function summarizeTournaments(
   for (const [tournament, tournamentGames] of byTournament) {
     const points = tournamentGames.flatMap((g) => g.points);
     const gameSummaries = summarizeGames(tournamentGames, playerScores);
+    const leaders = valueLeaders(points, playerScores, 3);
     summaries.push({
       tournament,
       games: gameSummaries,
@@ -205,7 +306,8 @@ export function summarizeTournaments(
       losses: gameSummaries.filter((g) => g.outcome === 'L').length,
       ties: gameSummaries.filter((g) => g.outcome === 'T').length,
       totals: totalsForPoints(points),
-      leaders: valueLeaders(points, playerScores, 3),
+      leaders,
+      mvpRanks: leaders[0] ? rankPlayer(points, leaders[0].player) : [],
     });
   }
 
