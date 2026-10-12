@@ -169,8 +169,9 @@ interface Tally {
   assists: number;
   completions: number;
   ds: number;
-  plusMinus: number;
+  callahansCaught: number;
   throwaways: number;
+  drops: number;
   attempts: number;
 }
 
@@ -179,15 +180,24 @@ function tallyPlayers(points: Point[]): Map<string, Tally> {
   const entry = (player: string) => {
     let t = tallies.get(player);
     if (!t) {
-      t = { goals: 0, assists: 0, completions: 0, ds: 0, plusMinus: 0, throwaways: 0, attempts: 0 };
+      t = {
+        goals: 0,
+        assists: 0,
+        completions: 0,
+        ds: 0,
+        callahansCaught: 0,
+        throwaways: 0,
+        drops: 0,
+        attempts: 0,
+      };
       tallies.set(player, t);
     }
     return t;
   };
 
   for (const point of points) {
-    const swing = point.result === 'scored' ? 1 : -1;
-    for (const player of point.playersOnField) entry(player).plusMinus += swing;
+    // Everyone who took the field is in the pool, even with an empty stat line.
+    for (const player of point.playersOnField) entry(player);
 
     for (const ev of point.events) {
       if (ev.eventType === 'Offense') {
@@ -199,19 +209,34 @@ function tallyPlayers(points: Point[]): Map<string, Tally> {
             if (ev.action === 'Goal') t.assists++;
           }
           if (ev.action === 'Goal' && ev.receiver) entry(ev.receiver).goals++;
-        } else if (ev.action === 'Throwaway' || ev.action === 'Stall' || ev.action === 'Callahan') {
+        } else if (ev.action === 'Throwaway') {
           if (ev.passer) {
             const t = entry(ev.passer);
             t.throwaways++;
             t.attempts++;
           }
+        } else if (ev.action === 'Stall' || ev.action === 'Callahan') {
+          // Charged against completion rate, but UltiAnalytics leaves both out of
+          // plus-minus, so they are tracked only as attempts here.
+          if (ev.passer) entry(ev.passer).attempts++;
+        } else if (ev.action === 'Drop') {
+          if (ev.receiver) entry(ev.receiver).drops++;
         }
       } else if ((ev.action === 'D' || ev.action === 'Callahan') && ev.defender) {
-        entry(ev.defender).ds++;
+        const t = entry(ev.defender);
+        t.ds++;
+        if (ev.action === 'Callahan') t.callahansCaught++;
       }
     }
   }
   return tallies;
+}
+
+// UltiAnalytics' plus-minus: goals + assists + Ds - throwaways - drops, where a
+// caught Callahan counts twice because it is a block and a goal at once. It is
+// already counted once as a D above, so the extra point is added here.
+function plusMinus(t: Tally): number {
+  return t.goals + t.assists + t.ds + t.callahansCaught - t.throwaways - t.drops;
 }
 
 export function rankPlayer(points: Point[], player: string): PlayerRank[] {
@@ -232,7 +257,7 @@ export function rankPlayer(points: Point[], player: string): PlayerRank[] {
     counting('assists', (t) => t.assists),
     counting('completions', (t) => t.completions),
     counting('Ds', (t) => t.ds),
-    counting('plus-minus', (t) => t.plusMinus, (v) => (v > 0 ? `+${v}` : `${v}`)),
+    counting('plus-minus', plusMinus, (v) => (v > 0 ? `+${v}` : `${v}`)),
   ];
 
   // Completion rate only means something once a player has thrown enough.
