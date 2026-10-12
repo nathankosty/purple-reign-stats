@@ -273,6 +273,18 @@ export function rankPlayer(points: Point[], player: string): PlayerRank[] {
     pool: eligible.length,
   });
 
+  // Fewest throwaways wins. Without the same throw minimum, anyone who barely
+  // touched the disc would top the list.
+  ranks.push({
+    stat: 'throwaways',
+    value: `${mine.throwaways}`,
+    rank:
+      mine.attempts >= MIN_THROWS_FOR_PCT
+        ? eligible.filter((t) => t.throwaways < mine.throwaways).length + 1
+        : null,
+    pool: eligible.length,
+  });
+
   return ranks;
 }
 
