@@ -336,7 +336,8 @@ export function summarizeTournaments(
     });
   }
 
-  return summaries.sort((a, b) => a.games[0].dateTime.localeCompare(b.games[0].dateTime));
+  // Newest tournament first; games stay in the order they were played.
+  return summaries.sort((a, b) => b.games[0].dateTime.localeCompare(a.games[0].dateTime));
 }
 
 // Lines that actually took the field together. Mid-point substitutions make a
