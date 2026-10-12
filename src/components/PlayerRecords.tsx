@@ -10,6 +10,8 @@ import {
   Connection,
   ThrowerAccuracy,
 } from '@/lib/connections';
+import { rankPlayer } from '@/lib/teamStats';
+import { RankLine } from './RankLine';
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -151,6 +153,34 @@ export function PlayerRecords() {
     [connections, selectedPlayer]
   );
 
+  // The same ranking the Tournaments tab shows for an MVP, one row per
+  // tournament this player actually played, newest first.
+  const byTournament = useMemo(() => {
+    if (!selectedPlayer) return [];
+    const scores = playerScores.get(selectedPlayer) || [];
+    const order: string[] = [];
+    for (const game of games) if (!order.includes(game.tournament)) order.push(game.tournament);
+
+    return order
+      .reverse()
+      .map((tournament) => {
+        const mine = scores.filter((ps) => ps.point.tournament === tournament);
+        if (mine.length === 0) return null;
+        const totalValue = mine.reduce((sum, ps) => sum + ps.score, 0);
+        return {
+          tournament,
+          totalValue,
+          pointsPlayed: mine.length,
+          valuePerPoint: totalValue / mine.length,
+          ranks: rankPlayer(
+            points.filter((pt) => pt.tournament === tournament),
+            selectedPlayer
+          ),
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
+  }, [selectedPlayer, playerScores, games, points]);
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -199,6 +229,31 @@ export function PlayerRecords() {
             <p className="text-purple-400/60 text-sm">
               Choose a player to see their individual record board.
             </p>
+          </div>
+        </div>
+      )}
+
+      {selectedPlayer && byTournament.length > 0 && (
+        <div className="bg-[#1a0f2e]/80 border border-purple-800/30 rounded-xl overflow-hidden mb-4">
+          <div className="px-4 py-3 border-b border-purple-800/30">
+            <h3 className="text-sm font-semibold text-purple-200">Tournament by Tournament</h3>
+            <p className="text-xs text-purple-400/50 mt-0.5">
+              Where {selectedPlayer} ranked among everyone who played each tournament
+            </p>
+          </div>
+          <div className="divide-y divide-purple-800/20">
+            {byTournament.map((row) => (
+              <div key={row.tournament} className="px-4 py-2.5 text-xs">
+                <div className="flex flex-wrap items-baseline gap-x-3">
+                  <span className="text-sm font-medium text-purple-100">{row.tournament}</span>
+                  <span className="text-purple-300">{row.totalValue.toFixed(1)} value</span>
+                  <span className="text-purple-400/50">
+                    {row.valuePerPoint.toFixed(1)}/pt over {row.pointsPlayed} pts
+                  </span>
+                </div>
+                <RankLine ranks={row.ranks} />
+              </div>
+            ))}
           </div>
         </div>
       )}

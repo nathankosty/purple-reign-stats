@@ -3,14 +3,13 @@
 import { useMemo, useState } from 'react';
 import { useStats } from './StatsProvider';
 import { computeConnections, computeThrowerAccuracy } from '@/lib/connections';
+import { RankLine } from './RankLine';
 import {
   breakPct,
   computeBestLineups,
   holdPct,
   summarizeTournaments,
   totalsForPoints,
-  MIN_THROWS_FOR_PCT,
-  PlayerRank,
   TeamTotals,
   ValueLeader,
 } from '@/lib/teamStats';
@@ -48,37 +47,6 @@ function Tile({ label, value, tone }: { label: string; value: string; tone?: str
     <div className="bg-[#1a0f2e]/80 border border-purple-800/30 rounded-xl px-4 py-3">
       <div className="text-xs text-purple-400/60 uppercase tracking-wider">{label}</div>
       <div className={`text-xl font-bold ${tone || 'text-purple-100'}`}>{value}</div>
-    </div>
-  );
-}
-
-function ordinal(n: number): string {
-  const tens = n % 100;
-  if (tens >= 11 && tens <= 13) return `${n}th`;
-  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] || 'th'}`;
-}
-
-// Where the MVP placed on the ordinary counting stats, so the value score can
-// be read against the numbers people already argue about.
-function RankLine({ ranks }: { ranks: PlayerRank[] }) {
-  if (ranks.length === 0) return null;
-  return (
-    <div className="text-purple-400/50">
-      Ranked among {ranks[0].pool} players:{' '}
-      {ranks.map((r, i) => (
-        <span key={r.stat}>
-          {i > 0 && ' \u00b7 '}
-          <span className="text-purple-300">{r.stat}</span>{' '}
-          {r.rank === null ? (
-            <span>n/a (under {MIN_THROWS_FOR_PCT} throws)</span>
-          ) : (
-            <>
-              <span className="text-purple-200 font-semibold">{ordinal(r.rank)}</span>
-              <span> ({r.value})</span>
-            </>
-          )}
-        </span>
-      ))}
     </div>
   );
 }
