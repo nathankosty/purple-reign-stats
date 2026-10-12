@@ -3,11 +3,74 @@
 import { useMemo, useState } from 'react';
 import { useStats } from './StatsProvider';
 import { computePlayerRecords, RecordCategory } from '@/lib/records';
+import {
+  computeConnections,
+  computeThrowerAccuracy,
+  playerConnections,
+  Connection,
+  ThrowerAccuracy,
+} from '@/lib/connections';
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function ConnectionPanel({
+  targets,
+  feeders,
+  accuracy,
+}: {
+  targets: Connection[];
+  feeders: Connection[];
+  accuracy: ThrowerAccuracy | undefined;
+}) {
+  const rows = (list: Connection[], nameKey: 'receiver' | 'thrower') => (
+    <div className="divide-y divide-purple-800/20">
+      {list.length === 0 && (
+        <div className="px-4 py-3 text-sm text-purple-400/50">Nothing recorded</div>
+      )}
+      {list.slice(0, 8).map((c) => (
+        <div
+          key={`${c.thrower}|${c.receiver}`}
+          className="px-4 py-2 flex items-center gap-3 text-sm"
+        >
+          <span className="flex-1 text-purple-100 truncate">{c[nameKey]}</span>
+          <span className="text-purple-200 font-semibold w-10 text-right">{c.completions}</span>
+          <span className="text-purple-400/60 w-16 text-right">
+            {c.goals} {c.goals === 1 ? 'goal' : 'goals'}
+          </span>
+          <span className="text-purple-400/60 w-12 text-right">{c.completionPct.toFixed(0)}%</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div className="bg-[#1a0f2e]/80 border border-purple-800/30 rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-purple-800/30">
+          <h3 className="text-sm font-semibold text-purple-200">Throws To</h3>
+          <p className="text-xs text-purple-400/50 mt-0.5">
+            {targets.length} different receivers
+            {accuracy
+              ? ` \u00b7 ${accuracy.completionPct.toFixed(1)}% completion on ${accuracy.attempts} throws`
+              : ''}
+          </p>
+        </div>
+        {rows(targets, 'receiver')}
+      </div>
+
+      <div className="bg-[#1a0f2e]/80 border border-purple-800/30 rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-purple-800/30">
+          <h3 className="text-sm font-semibold text-purple-200">Catches From</h3>
+          <p className="text-xs text-purple-400/50 mt-0.5">{feeders.length} different throwers</p>
+        </div>
+        {rows(feeders, 'thrower')}
+      </div>
+    </div>
+  );
 }
 
 function RecordTable({ category }: { category: RecordCategory }) {
@@ -81,6 +144,13 @@ export function PlayerRecords() {
     return computePlayerRecords(selectedPlayer, points, games, tournaments, playerScores);
   }, [selectedPlayer, points, games, tournaments, playerScores]);
 
+  const connections = useMemo(() => computeConnections(points), [points]);
+  const accuracy = useMemo(() => computeThrowerAccuracy(points), [points]);
+  const linked = useMemo(
+    () => (selectedPlayer ? playerConnections(connections, selectedPlayer) : null),
+    [connections, selectedPlayer]
+  );
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -131,6 +201,14 @@ export function PlayerRecords() {
             </p>
           </div>
         </div>
+      )}
+
+      {selectedPlayer && linked && (
+        <ConnectionPanel
+          targets={linked.targets}
+          feeders={linked.feeders}
+          accuracy={accuracy.get(selectedPlayer)}
+        />
       )}
 
       {selectedPlayer && categories.length > 0 && (
