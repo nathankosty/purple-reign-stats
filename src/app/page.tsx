@@ -6,11 +6,12 @@ import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { TopPointsList } from '@/components/TopPointsList';
 import { RecordsBoard } from '@/components/RecordsBoard';
+import { TeamStats } from '@/components/TeamStats';
 import { PlayerRecords } from '@/components/PlayerRecords';
 import { RoleManager } from '@/components/RoleManager';
 import { Filters } from '@/lib/types';
 
-type Tab = 'points' | 'records' | 'player-records' | 'roles';
+type Tab = 'points' | 'tournaments' | 'records' | 'player-records' | 'roles';
 
 const defaultFilters: Filters = {
   player: '',
@@ -42,6 +43,19 @@ function AppContent() {
         >
           Top Points
           {tab === 'points' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 rounded-full" />
+          )}
+        </button>
+        <button
+          onClick={() => setTab('tournaments')}
+          className={`px-5 py-2.5 text-sm font-medium transition-colors relative ${
+            tab === 'tournaments'
+              ? 'text-purple-200'
+              : 'text-purple-400/50 hover:text-purple-300'
+          }`}
+        >
+          Tournaments
+          {tab === 'tournaments' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 rounded-full" />
           )}
         </button>
@@ -119,6 +133,7 @@ function AppContent() {
           </>
         )}
 
+        {tab === 'tournaments' && <TeamStats />}
         {tab === 'records' && <RecordsBoard />}
         {tab === 'player-records' && <PlayerRecords />}
         {tab === 'roles' && <RoleManager />}

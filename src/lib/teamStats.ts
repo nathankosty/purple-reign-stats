@@ -1,0 +1,256 @@
+import { Game, PlayerPointScore, Point, RawEvent } from './types';
+
+// Team counting stats. Opponent completions are not in the source data, so
+// "passes" and "turnovers" are always ours and "forced" are the ones we caused.
+export interface TeamTotals {
+  pointsPlayed: number;
+  scored: number;
+  scoredAgainst: number;
+  goalDiff: number;
+  passes: number;
+  turnovers: number;
+  forcedTurnovers: number;
+  turnoverMargin: number;
+  oPoints: number;
+  holds: number;
+  dPoints: number;
+  breaks: number;
+}
+
+export interface ValueLeader {
+  player: string;
+  totalValue: number;
+  pointsPlayed: number;
+  valuePerPoint: number;
+}
+
+export interface GameSummary {
+  key: string;
+  dateTime: string;
+  tournament: string;
+  opponent: string;
+  ours: number;
+  theirs: number;
+  outcome: 'W' | 'L' | 'T';
+  totals: TeamTotals;
+  leaders: ValueLeader[];
+  longestRunFor: number;
+  longestRunAgainst: number;
+}
+
+export interface TournamentSummary {
+  tournament: string;
+  games: GameSummary[];
+  wins: number;
+  losses: number;
+  ties: number;
+  totals: TeamTotals;
+  leaders: ValueLeader[];
+}
+
+const isPass = (ev: RawEvent) =>
+  ev.eventType === 'Offense' && (ev.action === 'Catch' || ev.action === 'Goal');
+
+// A thrown Callahan is a turnover that hands over a point, so it counts here.
+const isOurTurnover = (ev: RawEvent) =>
+  ev.eventType === 'Offense' &&
+  (ev.action === 'Throwaway' || ev.action === 'Drop' || ev.action === 'Stall' || ev.action === 'Callahan');
+
+const isForcedTurnover = (ev: RawEvent) =>
+  ev.eventType === 'Defense' &&
+  (ev.action === 'Throwaway' || ev.action === 'D' || ev.action === 'Callahan');
+
+export function emptyTotals(): TeamTotals {
+  return {
+    pointsPlayed: 0,
+    scored: 0,
+    scoredAgainst: 0,
+    goalDiff: 0,
+    passes: 0,
+    turnovers: 0,
+    forcedTurnovers: 0,
+    turnoverMargin: 0,
+    oPoints: 0,
+    holds: 0,
+    dPoints: 0,
+    breaks: 0,
+  };
+}
+
+function addPoint(totals: TeamTotals, point: Point): void {
+  totals.pointsPlayed++;
+  const scored = point.result === 'scored';
+  if (scored) totals.scored++;
+  else totals.scoredAgainst++;
+
+  if (point.line === 'O') {
+    totals.oPoints++;
+    if (scored) totals.holds++;
+  } else {
+    totals.dPoints++;
+    if (scored) totals.breaks++;
+  }
+
+  for (const ev of point.events) {
+    if (isPass(ev)) totals.passes++;
+    else if (isOurTurnover(ev)) totals.turnovers++;
+    if (isForcedTurnover(ev)) totals.forcedTurnovers++;
+  }
+
+  totals.goalDiff = totals.scored - totals.scoredAgainst;
+  totals.turnoverMargin = totals.forcedTurnovers - totals.turnovers;
+}
+
+export function totalsForPoints(points: Point[]): TeamTotals {
+  const totals = emptyTotals();
+  for (const point of points) addPoint(totals, point);
+  return totals;
+}
+
+export function holdPct(totals: TeamTotals): number | null {
+  return totals.oPoints > 0 ? (totals.holds / totals.oPoints) * 100 : null;
+}
+
+export function breakPct(totals: TeamTotals): number | null {
+  return totals.dPoints > 0 ? (totals.breaks / totals.dPoints) * 100 : null;
+}
+
+// Total value decides the ranking; value per point is carried alongside so a
+// big number from heavy playing time is visible rather than hidden.
+export function valueLeaders(
+  points: Point[],
+  playerScores: Map<string, PlayerPointScore[]>,
+  topN: number = 3
+): ValueLeader[] {
+  const ids = new Set(points.map((pt) => pt.id));
+  const totals = new Map<string, { value: number; points: number }>();
+
+  for (const [player, scores] of playerScores) {
+    for (const ps of scores) {
+      if (!ids.has(ps.point.id)) continue;
+      const cur = totals.get(player) || { value: 0, points: 0 };
+      cur.value += ps.score;
+      cur.points++;
+      totals.set(player, cur);
+    }
+  }
+
+  return Array.from(totals.entries())
+    .map(([player, t]) => ({
+      player,
+      totalValue: t.value,
+      pointsPlayed: t.points,
+      valuePerPoint: t.points > 0 ? t.value / t.points : 0,
+    }))
+    .sort(
+      (a, b) =>
+        b.totalValue - a.totalValue ||
+        b.valuePerPoint - a.valuePerPoint ||
+        a.player.localeCompare(b.player)
+    )
+    .slice(0, topN);
+}
+
+function longestRun(points: Point[], result: Point['result']): number {
+  let best = 0;
+  let current = 0;
+  for (const point of points) {
+    current = point.result === result ? current + 1 : 0;
+    if (current > best) best = current;
+  }
+  return best;
+}
+
+export function summarizeGames(
+  games: Game[],
+  playerScores: Map<string, PlayerPointScore[]>
+): GameSummary[] {
+  return games.map((game) => {
+    const { ours, theirs } = game.finalScore;
+    return {
+      key: `${game.dateTime}|${game.opponent}`,
+      dateTime: game.dateTime,
+      tournament: game.tournament,
+      opponent: game.opponent,
+      ours,
+      theirs,
+      outcome: ours > theirs ? 'W' : ours < theirs ? 'L' : 'T',
+      totals: totalsForPoints(game.points),
+      leaders: valueLeaders(game.points, playerScores, 3),
+      longestRunFor: longestRun(game.points, 'scored'),
+      longestRunAgainst: longestRun(game.points, 'scored_against'),
+    };
+  });
+}
+
+export function summarizeTournaments(
+  games: Game[],
+  playerScores: Map<string, PlayerPointScore[]>
+): TournamentSummary[] {
+  const byTournament = new Map<string, Game[]>();
+  for (const game of games) {
+    const list = byTournament.get(game.tournament) || [];
+    list.push(game);
+    byTournament.set(game.tournament, list);
+  }
+
+  const summaries: TournamentSummary[] = [];
+  for (const [tournament, tournamentGames] of byTournament) {
+    const points = tournamentGames.flatMap((g) => g.points);
+    const gameSummaries = summarizeGames(tournamentGames, playerScores);
+    summaries.push({
+      tournament,
+      games: gameSummaries,
+      wins: gameSummaries.filter((g) => g.outcome === 'W').length,
+      losses: gameSummaries.filter((g) => g.outcome === 'L').length,
+      ties: gameSummaries.filter((g) => g.outcome === 'T').length,
+      totals: totalsForPoints(points),
+      leaders: valueLeaders(points, playerScores, 3),
+    });
+  }
+
+  return summaries.sort((a, b) => a.games[0].dateTime.localeCompare(b.games[0].dateTime));
+}
+
+// Lines that actually took the field together. Mid-point substitutions make a
+// point's roster larger than seven, so only full, unchanged lines are grouped.
+export interface LineupRecord {
+  players: string[];
+  pointsPlayed: number;
+  scored: number;
+  scoredAgainst: number;
+  goalDiff: number;
+  scoredPct: number;
+}
+
+export function computeBestLineups(
+  points: Point[],
+  minPoints: number = 5,
+  topN: number = 8
+): LineupRecord[] {
+  const lineups = new Map<string, LineupRecord>();
+
+  for (const point of points) {
+    if (point.playersOnField.length !== 7) continue;
+    const players = [...point.playersOnField].sort();
+    const key = players.join('|');
+    let record = lineups.get(key);
+    if (!record) {
+      record = { players, pointsPlayed: 0, scored: 0, scoredAgainst: 0, goalDiff: 0, scoredPct: 0 };
+      lineups.set(key, record);
+    }
+    record.pointsPlayed++;
+    if (point.result === 'scored') record.scored++;
+    else record.scoredAgainst++;
+  }
+
+  return Array.from(lineups.values())
+    .filter((r) => r.pointsPlayed >= minPoints)
+    .map((r) => ({
+      ...r,
+      goalDiff: r.scored - r.scoredAgainst,
+      scoredPct: (r.scored / r.pointsPlayed) * 100,
+    }))
+    .sort((a, b) => b.goalDiff - a.goalDiff || b.scoredPct - a.scoredPct)
+    .slice(0, topN);
+}
