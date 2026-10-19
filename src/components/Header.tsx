@@ -1,10 +1,23 @@
 'use client';
 
 import Image from 'next/image';
+import { useRef } from 'react';
 import { useStats } from './StatsProvider';
 
-export function Header() {
+const CLICKS_TO_UNLOCK = 5;
+
+export function Header({ onSecretUnlock }: { onSecretUnlock?: () => void }) {
   const { refresh, loading, lastUpdated } = useStats();
+  const clicks = useRef(0);
+
+  // Five taps on the logo opens the Hall of Shame. Nothing hints at it.
+  const countClick = () => {
+    clicks.current += 1;
+    if (clicks.current >= CLICKS_TO_UNLOCK) {
+      clicks.current = 0;
+      onSecretUnlock?.();
+    }
+  };
 
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-purple-900/50 bg-[#0d0717]/80 backdrop-blur-sm sticky top-0 z-50">
@@ -14,7 +27,8 @@ export function Header() {
           alt="Purple Reign"
           width={40}
           height={40}
-          className="w-10 h-10 drop-shadow-[0_0_6px_rgba(168,85,247,0.4)]"
+          onClick={countClick}
+          className="w-10 h-10 drop-shadow-[0_0_6px_rgba(168,85,247,0.4)] select-none"
         />
         <div>
           <h1 className="text-xl font-bold bg-gradient-to-r from-purple-300 to-purple-100 bg-clip-text text-transparent">
