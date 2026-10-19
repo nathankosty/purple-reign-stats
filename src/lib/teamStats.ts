@@ -243,6 +243,24 @@ function plusMinus(t: Tally): number {
   return t.goals + t.assists + t.ds + t.callahansCaught - t.throwaways - t.drops;
 }
 
+// Season plus-minus for every player, for leaderboards that want the whole table.
+export function plusMinusTable(
+  points: Point[]
+): { player: string; plusMinus: number; pointsPlayed: number }[] {
+  const tallies = tallyPlayers(points);
+  const pointsPlayed = new Map<string, number>();
+  for (const point of points) {
+    for (const player of point.playersOnField) {
+      pointsPlayed.set(player, (pointsPlayed.get(player) || 0) + 1);
+    }
+  }
+  return Array.from(tallies.entries()).map(([player, tally]) => ({
+    player,
+    plusMinus: plusMinus(tally),
+    pointsPlayed: pointsPlayed.get(player) || 0,
+  }));
+}
+
 export function rankPlayer(points: Point[], player: string): PlayerRank[] {
   const tallies = tallyPlayers(points);
   const mine = tallies.get(player);
