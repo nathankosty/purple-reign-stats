@@ -57,6 +57,7 @@ export interface ScoreBreakdown {
   catches: number;
   goals: number;
   assists: number;
+  hockeyAssists: number;
   ds: number;
   throwaways: number;
   drops: number;
@@ -81,6 +82,7 @@ export interface ScoringWeights {
   catch: number;
   goal: number;
   assist: number;
+  hockeyAssist: number;
   defensiveBlock: number;
   callahan: number;
   throwaway: number;

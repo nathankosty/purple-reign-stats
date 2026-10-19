@@ -1,3 +1,4 @@
+import { hockeyAssister } from './hockeyAssists';
 import { Point, PlayerPointScore, ScoreBreakdown, ScoringWeights, RawEvent } from './types';
 
 export const DEFAULT_WEIGHTS: ScoringWeights = {
@@ -5,6 +6,7 @@ export const DEFAULT_WEIGHTS: ScoringWeights = {
   catch: 0.5,
   goal: 5,
   assist: 3,
+  hockeyAssist: 1,
   defensiveBlock: 4,
   callahan: 10,
   throwaway: -3,
@@ -71,6 +73,7 @@ export function scorePlayerInPoint(
     catches: 0,
     goals: 0,
     assists: 0,
+    hockeyAssists: 0,
     ds: 0,
     throwaways: 0,
     drops: 0,
@@ -85,7 +88,9 @@ export function scorePlayerInPoint(
   let score = 0;
   const highlights: string[] = [];
 
-  for (const ev of point.events) {
+  for (let i = 0; i < point.events.length; i++) {
+    const ev = point.events[i];
+
     // Offensive actions
     if (ev.eventType === 'Offense') {
       switch (ev.action) {
@@ -103,6 +108,12 @@ export function scorePlayerInPoint(
           if (ev.passer === player) {
             breakdown.assists++;
             score += weights.assist;
+          }
+          // The pass that set up the assist, on top of the completion it
+          // already earned, so the setup throw is worth 2 against an assist's 3.
+          if (hockeyAssister(point.events, i) === player) {
+            breakdown.hockeyAssists++;
+            score += weights.hockeyAssist;
           }
           if (ev.receiver === player) {
             breakdown.goals++;
@@ -187,6 +198,7 @@ export function scorePlayerInPoint(
   if (breakdown.goals > 0 && !highlights.some((h) => h.includes('Goal'))) highlights.push('Goal');
   if (breakdown.assists > 0 && !highlights.some((h) => h.includes('Assist')))
     highlights.push('Assist');
+  if (breakdown.hockeyAssists > 0 && breakdown.assists === 0) highlights.push('Hockey Assist');
   if (breakdown.ds > 0 && !highlights.some((h) => h.includes('D')))
     highlights.push(breakdown.ds > 1 ? `${breakdown.ds} Ds` : 'D');
   if (breakdown.impactBonus > 0) highlights.push('D → Score');
