@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useState } from 'react';
 import { StatsProvider } from '@/components/StatsProvider';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
@@ -14,32 +14,7 @@ import { Filters } from '@/lib/types';
 
 type Tab = 'points' | 'tournaments' | 'records' | 'player-records' | 'roles' | 'shame';
 
-const SHAME_KEY = 'purple-reign-hall-of-shame';
 
-// Once found, the Hall of Shame stays open on this device. Read through a
-// store so the server render and the first client render agree.
-const shameStore = {
-  listeners: new Set<() => void>(),
-  subscribe(listener: () => void) {
-    shameStore.listeners.add(listener);
-    return () => {
-      shameStore.listeners.delete(listener);
-    };
-  },
-  isUnlocked() {
-    try {
-      return localStorage.getItem(SHAME_KEY) === 'found';
-    } catch {
-      return false;
-    }
-  },
-  unlock() {
-    try {
-      localStorage.setItem(SHAME_KEY, 'found');
-    } catch {}
-    for (const listener of shameStore.listeners) listener();
-  },
-};
 
 const defaultFilters: Filters = {
   player: '',
@@ -54,20 +29,21 @@ function AppContent() {
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('points');
-  const shameUnlocked = useSyncExternalStore(
-    shameStore.subscribe,
-    shameStore.isUnlocked,
-    () => false
-  );
+  // Nothing is remembered: the tab is gone again on reload, and five more
+  // clicks on the logo puts it away.
+  const [shameUnlocked, setShameUnlocked] = useState(false);
 
-  const unlockShame = () => {
-    shameStore.unlock();
-    setTab('shame');
+  const toggleShame = () => {
+    setShameUnlocked((open) => {
+      if (open && tab === 'shame') setTab('points');
+      if (!open) setTab('shame');
+      return !open;
+    });
   };
 
   return (
     <div className="flex flex-col h-screen">
-      <Header onSecretUnlock={unlockShame} />
+      <Header onSecretUnlock={toggleShame} />
 
       {/* Tab bar */}
       <div className="flex border-b border-purple-800/30 bg-[#0d0717]/60 px-6">
