@@ -1,3 +1,4 @@
+import { hockeyAssistsInPoint } from './hockeyAssists';
 import { Game, PlayerPointScore, Point, RawEvent } from './types';
 
 // Team counting stats. Opponent completions are not in the source data, so
@@ -167,6 +168,7 @@ export interface PlayerRank {
 interface Tally {
   goals: number;
   assists: number;
+  hockeyAssists: number;
   completions: number;
   ds: number;
   callahansCaught: number;
@@ -183,6 +185,7 @@ function tallyPlayers(points: Point[]): Map<string, Tally> {
       t = {
         goals: 0,
         assists: 0,
+        hockeyAssists: 0,
         completions: 0,
         ds: 0,
         callahansCaught: 0,
@@ -198,6 +201,7 @@ function tallyPlayers(points: Point[]): Map<string, Tally> {
   for (const point of points) {
     // Everyone who took the field is in the pool, even with an empty stat line.
     for (const player of point.playersOnField) entry(player);
+    for (const player of hockeyAssistsInPoint(point)) entry(player).hockeyAssists++;
 
     for (const ev of point.events) {
       if (ev.eventType === 'Offense') {
@@ -255,6 +259,7 @@ export function rankPlayer(points: Point[], player: string): PlayerRank[] {
   const ranks: PlayerRank[] = [
     counting('goals', (t) => t.goals),
     counting('assists', (t) => t.assists),
+    counting('hockey assists', (t) => t.hockeyAssists),
     counting('completions', (t) => t.completions),
     counting('Ds', (t) => t.ds),
     counting('plus-minus', plusMinus, (v) => (v > 0 ? `+${v}` : `${v}`)),

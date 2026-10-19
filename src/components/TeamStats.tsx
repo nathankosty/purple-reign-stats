@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useStats } from './StatsProvider';
 import { computeConnections, computeThrowerAccuracy } from '@/lib/connections';
+import { hockeyAssistLeaders } from '@/lib/hockeyAssists';
 import { RankLine } from './RankLine';
 import {
   breakPct,
@@ -104,6 +105,7 @@ export function TeamStats() {
       .slice(0, 8);
   }, [points]);
   const lineups = useMemo(() => computeBestLineups(points), [points]);
+  const hockeyAssists = useMemo(() => hockeyAssistLeaders(points), [points]);
   const topGoalPairs = useMemo(
     () => [...connections].sort((a, b) => b.goals - a.goals).slice(0, 8),
     [connections]
@@ -274,6 +276,20 @@ export function TeamStats() {
                 <span className="text-purple-400/60 w-28 text-right">
                   {a.completions}/{a.attempts}
                 </span>
+              </div>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel
+          title="Most Hockey Assists"
+          subtitle="The pass before the assist, when the possession ran through them"
+        >
+          <div className="divide-y divide-purple-800/20">
+            {hockeyAssists.map((h) => (
+              <div key={h.player} className="px-4 py-2 flex items-center gap-3 text-sm">
+                <span className="flex-1 text-purple-100 truncate">{h.player}</span>
+                <span className="text-purple-200 font-semibold w-10 text-right">{h.count}</span>
               </div>
             ))}
           </div>

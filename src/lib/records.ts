@@ -1,3 +1,4 @@
+import { countHockeyAssists } from './hockeyAssists';
 import { Point, Game, RawEvent, PlayerPointScore } from './types';
 
 export interface Record {
@@ -18,23 +19,20 @@ function formatContext(tournament: string, opponent: string, dateTime: string): 
   }
 }
 
-function countPlayerActionsInPoint(
-  point: Point,
-  player: string,
-  matchFn: (ev: RawEvent, player: string) => boolean
-): number {
-  return point.events.filter((ev) => matchFn(ev, player)).length;
-}
+// Most records count events, but a hockey assist depends on the event before
+// the goal, so records are counted a point at a time.
+type PointCounter = (point: Point, player: string) => number;
 
-function countPlayerActionsInGame(
-  game: Game,
-  player: string,
-  matchFn: (ev: RawEvent, player: string) => boolean
-): number {
+const byEvent =
+  (matchFn: (ev: RawEvent, player: string) => boolean): PointCounter =>
+  (point, player) =>
+    point.events.filter((ev) => matchFn(ev, player)).length;
+
+function countPlayerActionsInGame(game: Game, player: string, count: PointCounter): number {
   let total = 0;
   for (const pt of game.points) {
     if (!pt.playersOnField.includes(player)) continue;
-    total += pt.events.filter((ev) => matchFn(ev, player)).length;
+    total += count(pt, player);
   }
   return total;
 }
@@ -43,12 +41,12 @@ function countPlayerActionsInTournament(
   games: Game[],
   tournament: string,
   player: string,
-  matchFn: (ev: RawEvent, player: string) => boolean
+  count: PointCounter
 ): number {
   let total = 0;
   for (const game of games) {
     if (game.tournament !== tournament) continue;
-    total += countPlayerActionsInGame(game, player, matchFn);
+    total += countPlayerActionsInGame(game, player, count);
   }
   return total;
 }
@@ -72,7 +70,7 @@ const isAssist = (ev: RawEvent, p: string) =>
 function findTopNPointRecords(
   points: Point[],
   players: string[],
-  matchFn: (ev: RawEvent, player: string) => boolean,
+  count: PointCounter,
   n: number
 ): Record[] {
   const allowed = new Set(players);
@@ -81,9 +79,9 @@ function findTopNPointRecords(
   for (const point of points) {
     for (const player of point.playersOnField) {
       if (!allowed.has(player)) continue;
-      const count = countPlayerActionsInPoint(point, player, matchFn);
-      if (count > 0) {
-        results.push({ player, point, count });
+      const value = count(point, player);
+      if (value > 0) {
+        results.push({ player, point, count: value });
       }
     }
   }
@@ -101,7 +99,7 @@ function findTopNPointRecords(
 function findTopNGameRecords(
   games: Game[],
   players: string[],
-  matchFn: (ev: RawEvent, player: string) => boolean,
+  count: PointCounter,
   n: number
 ): Record[] {
   const allowed = new Set(players);
@@ -117,9 +115,9 @@ function findTopNGameRecords(
     }
 
     for (const player of gamePlayers) {
-      const count = countPlayerActionsInGame(game, player, matchFn);
-      if (count > 0) {
-        results.push({ player, game, count });
+      const value = countPlayerActionsInGame(game, player, count);
+      if (value > 0) {
+        results.push({ player, game, count: value });
       }
     }
   }
@@ -138,7 +136,7 @@ function findTopNTournamentRecords(
   games: Game[],
   tournaments: string[],
   players: string[],
-  matchFn: (ev: RawEvent, player: string) => boolean,
+  count: PointCounter,
   n: number
 ): Record[] {
   const results: { player: string; tournament: string; count: number }[] = [];
@@ -157,9 +155,9 @@ function findTopNTournamentRecords(
     }
 
     for (const player of tournamentPlayers) {
-      const count = countPlayerActionsInTournament(games, tournament, player, matchFn);
-      if (count > 0) {
-        results.push({ player, tournament, count });
+      const value = countPlayerActionsInTournament(games, tournament, player, count);
+      if (value > 0) {
+        results.push({ player, tournament, count: value });
       }
     }
   }
@@ -191,61 +189,72 @@ export function computeAllRecords(
   // Most completions (throws) in a point
   categories.push({
     title: 'Most Throws in a Point',
-    records: findTopNPointRecords(points, players, isCompletion, topN),
+    records: findTopNPointRecords(points, players, byEvent(isCompletion), topN),
   });
 
   // Most completions in a game
   categories.push({
     title: 'Most Throws in a Game',
-    records: findTopNGameRecords(games, players, isCompletion, topN),
+    records: findTopNGameRecords(games, players, byEvent(isCompletion), topN),
   });
 
   // Most catches in a point
   categories.push({
     title: 'Most Catches in a Point',
-    records: findTopNPointRecords(points, players, isCatch, topN),
+    records: findTopNPointRecords(points, players, byEvent(isCatch), topN),
   });
 
   // Most catches in a game
   categories.push({
     title: 'Most Catches in a Game',
-    records: findTopNGameRecords(games, players, isCatch, topN),
+    records: findTopNGameRecords(games, players, byEvent(isCatch), topN),
   });
 
   // Most Ds in a point
   categories.push({
     title: 'Most Ds in a Point',
-    records: findTopNPointRecords(points, players, isD, topN),
+    records: findTopNPointRecords(points, players, byEvent(isD), topN),
   });
 
   // Most Ds in a game
   categories.push({
     title: 'Most Ds in a Game',
-    records: findTopNGameRecords(games, players, isD, topN),
+    records: findTopNGameRecords(games, players, byEvent(isD), topN),
   });
 
   // Most goals in a game
   categories.push({
     title: 'Most Goals in a Game',
-    records: findTopNGameRecords(games, players, isGoal, topN),
+    records: findTopNGameRecords(games, players, byEvent(isGoal), topN),
   });
 
   // Most goals in a tournament
   categories.push({
     title: 'Most Goals in a Tournament',
-    records: findTopNTournamentRecords(games, tournaments, players, isGoal, topN),
+    records: findTopNTournamentRecords(games, tournaments, players, byEvent(isGoal), topN),
   });
 
   // Most assists in a game
   categories.push({
     title: 'Most Assists in a Game',
-    records: findTopNGameRecords(games, players, isAssist, topN),
+    records: findTopNGameRecords(games, players, byEvent(isAssist), topN),
   });
 
   // Most assists in a tournament
   categories.push({
     title: 'Most Assists in a Tournament',
-    records: findTopNTournamentRecords(games, tournaments, players, isAssist, topN),
+    records: findTopNTournamentRecords(games, tournaments, players, byEvent(isAssist), topN),
+  });
+
+  // Most hockey assists (the pass before the assist)
+  categories.push({
+    title: 'Most Hockey Assists in a Game',
+    records: findTopNGameRecords(games, players, countHockeyAssists, topN),
+  });
+
+  categories.push({
+    title: 'Most Hockey Assists in a Tournament',
+    records: findTopNTournamentRecords(games, tournaments, players, countHockeyAssists, topN),
   });
 
   // Longest points
@@ -286,13 +295,11 @@ export function computePlayerRecords(
   const playerPoints = points.filter((pt) => pt.playersOnField.includes(player));
 
   // Helper: find top N for this player in points
-  function playerPointRecords(
-    matchFn: (ev: RawEvent, player: string) => boolean
-  ): Record[] {
+  function playerPointRecords(count: PointCounter): Record[] {
     const results: { point: Point; count: number }[] = [];
     for (const point of playerPoints) {
-      const count = countPlayerActionsInPoint(point, player, matchFn);
-      if (count > 0) results.push({ point, count });
+      const value = count(point, player);
+      if (value > 0) results.push({ point, count: value });
     }
     results.sort((a, b) => b.count - a.count);
     return results.slice(0, topN).map((r) => ({
@@ -304,13 +311,11 @@ export function computePlayerRecords(
   }
 
   // Helper: find top N for this player in games
-  function playerGameRecords(
-    matchFn: (ev: RawEvent, player: string) => boolean
-  ): Record[] {
+  function playerGameRecords(count: PointCounter): Record[] {
     const results: { game: Game; count: number }[] = [];
     for (const game of games) {
-      const count = countPlayerActionsInGame(game, player, matchFn);
-      if (count > 0) results.push({ game, count });
+      const value = countPlayerActionsInGame(game, player, count);
+      if (value > 0) results.push({ game, count: value });
     }
     results.sort((a, b) => b.count - a.count);
     return results.slice(0, topN).map((r) => ({
@@ -322,13 +327,11 @@ export function computePlayerRecords(
   }
 
   // Helper: find top N for this player in tournaments
-  function playerTournamentRecords(
-    matchFn: (ev: RawEvent, player: string) => boolean
-  ): Record[] {
+  function playerTournamentRecords(count: PointCounter): Record[] {
     const results: { tournament: string; count: number }[] = [];
     for (const tournament of tournaments) {
-      const count = countPlayerActionsInTournament(games, tournament, player, matchFn);
-      if (count > 0) results.push({ tournament, count });
+      const value = countPlayerActionsInTournament(games, tournament, player, count);
+      if (value > 0) results.push({ tournament, count: value });
     }
     results.sort((a, b) => b.count - a.count);
     return results.slice(0, topN).map((r) => ({
@@ -353,27 +356,31 @@ export function computePlayerRecords(
   });
 
   // Throws
-  categories.push({ title: 'Most Throws in a Point', records: playerPointRecords(isCompletion) });
-  categories.push({ title: 'Most Throws in a Game', records: playerGameRecords(isCompletion) });
-  categories.push({ title: 'Most Throws in a Tournament', records: playerTournamentRecords(isCompletion) });
+  categories.push({ title: 'Most Throws in a Point', records: playerPointRecords(byEvent(isCompletion)) });
+  categories.push({ title: 'Most Throws in a Game', records: playerGameRecords(byEvent(isCompletion)) });
+  categories.push({ title: 'Most Throws in a Tournament', records: playerTournamentRecords(byEvent(isCompletion)) });
 
   // Catches
-  categories.push({ title: 'Most Catches in a Point', records: playerPointRecords(isCatch) });
-  categories.push({ title: 'Most Catches in a Game', records: playerGameRecords(isCatch) });
-  categories.push({ title: 'Most Catches in a Tournament', records: playerTournamentRecords(isCatch) });
+  categories.push({ title: 'Most Catches in a Point', records: playerPointRecords(byEvent(isCatch)) });
+  categories.push({ title: 'Most Catches in a Game', records: playerGameRecords(byEvent(isCatch)) });
+  categories.push({ title: 'Most Catches in a Tournament', records: playerTournamentRecords(byEvent(isCatch)) });
 
   // Ds
-  categories.push({ title: 'Most Ds in a Point', records: playerPointRecords(isD) });
-  categories.push({ title: 'Most Ds in a Game', records: playerGameRecords(isD) });
-  categories.push({ title: 'Most Ds in a Tournament', records: playerTournamentRecords(isD) });
+  categories.push({ title: 'Most Ds in a Point', records: playerPointRecords(byEvent(isD)) });
+  categories.push({ title: 'Most Ds in a Game', records: playerGameRecords(byEvent(isD)) });
+  categories.push({ title: 'Most Ds in a Tournament', records: playerTournamentRecords(byEvent(isD)) });
 
   // Goals
-  categories.push({ title: 'Most Goals in a Game', records: playerGameRecords(isGoal) });
-  categories.push({ title: 'Most Goals in a Tournament', records: playerTournamentRecords(isGoal) });
+  categories.push({ title: 'Most Goals in a Game', records: playerGameRecords(byEvent(isGoal)) });
+  categories.push({ title: 'Most Goals in a Tournament', records: playerTournamentRecords(byEvent(isGoal)) });
 
   // Assists
-  categories.push({ title: 'Most Assists in a Game', records: playerGameRecords(isAssist) });
-  categories.push({ title: 'Most Assists in a Tournament', records: playerTournamentRecords(isAssist) });
+  categories.push({ title: 'Most Assists in a Game', records: playerGameRecords(byEvent(isAssist)) });
+  categories.push({ title: 'Most Assists in a Tournament', records: playerTournamentRecords(byEvent(isAssist)) });
+
+  // Hockey assists
+  categories.push({ title: 'Most Hockey Assists in a Game', records: playerGameRecords(countHockeyAssists) });
+  categories.push({ title: 'Most Hockey Assists in a Tournament', records: playerTournamentRecords(countHockeyAssists) });
 
   // Longest points this player was on
   const longestPlayerPoints = [...playerPoints]
@@ -390,8 +397,10 @@ export function computePlayerRecords(
 
   // Career totals as a single-entry category
   let totalThrows = 0, totalCatches = 0, totalDs = 0, totalGoals = 0, totalAssists = 0, totalPoints = 0;
+  let totalHockeyAssists = 0;
   for (const pt of playerPoints) {
     totalPoints++;
+    totalHockeyAssists += countHockeyAssists(pt, player);
     for (const ev of pt.events) {
       if (isCompletion(ev, player)) totalThrows++;
       if (isCatch(ev, player)) totalCatches++;
@@ -408,6 +417,7 @@ export function computePlayerRecords(
       { label: '', value: totalCatches, player: 'Total Catches', context: '' },
       { label: '', value: totalGoals, player: 'Total Goals', context: '' },
       { label: '', value: totalAssists, player: 'Total Assists', context: '' },
+      { label: '', value: totalHockeyAssists, player: 'Total Hockey Assists', context: '' },
       { label: '', value: totalDs, player: 'Total Ds', context: '' },
     ],
   });
