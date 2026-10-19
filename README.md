@@ -22,6 +22,7 @@ This is the actual argument of the project, so it's worth being explicit about w
 | Catch (receiver) | **+0.5** | Worth less than the throw. The throw carries the risk; the catch usually carries less. |
 | Goal | **+5** | The terminal act that banks the point. |
 | Assist | **+3** | Below a goal here, a deliberate and arguable choice (see below). |
+| Hockey assist | **+1** | The pass before the assist, on top of the completion that throw already earns. Two for the setup against three for the assist. Credited only when the possession is unbroken. |
 | Defensive block | **+4** | Rated *above* an assist. A D is a full possession swing; an assist is one throw in a possession you already owned. |
 | Callahan | **+10** | A block that is simultaneously a goal. The rarest play in the sport. |
 | Throwaway | **−3** | |

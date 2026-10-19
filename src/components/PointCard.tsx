@@ -34,6 +34,7 @@ export function PointCard({ data, rank }: PointCardProps) {
     { label: 'Catches', value: breakdown.catches, show: breakdown.catches > 0 },
     { label: 'Goals', value: breakdown.goals, show: breakdown.goals > 0 },
     { label: 'Assists', value: breakdown.assists, show: breakdown.assists > 0 },
+    { label: 'Hockey Assists', value: breakdown.hockeyAssists, show: breakdown.hockeyAssists > 0 },
     { label: 'Ds', value: breakdown.ds, show: breakdown.ds > 0 },
     { label: 'Callahans', value: breakdown.callahans, show: breakdown.callahans > 0 },
     { label: 'TAs', value: breakdown.throwaways, show: breakdown.throwaways > 0 },
