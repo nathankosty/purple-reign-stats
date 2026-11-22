@@ -1,4 +1,12 @@
 import { countHockeyAssists } from './hockeyAssists';
+import {
+  bestPerPlayer,
+  catchingStreaks,
+  completionStreaks,
+  gameStreaks,
+  longestFor,
+  Streak,
+} from './streaks';
 import { Point, Game, RawEvent, PlayerPointScore } from './types';
 
 export interface Record {
@@ -172,6 +180,31 @@ function findTopNTournamentRecords(
   }));
 }
 
+function streakBoards(games: Game[]): [string, Streak[]][] {
+  return [
+    ['Longest Completion Streak', completionStreaks(games)],
+    ['Longest Catching Streak', catchingStreaks(games)],
+    ['Most Consecutive Games with a Goal', gameStreaks(games, 'goal')],
+    ['Most Consecutive Games with an Assist', gameStreaks(games, 'assist')],
+    ['Most Consecutive Games with a Goal or Assist', gameStreaks(games, 'goal-or-assist')],
+  ];
+}
+
+const where = (pt: Point) => `${pt.tournament} vs ${pt.opponent}`;
+
+const sameGame = (a: Point, b: Point) => a.dateTime === b.dateTime && a.opponent === b.opponent;
+
+// A run of one isn't a streak, so boards start at two.
+function streakRecords(streaks: Streak[]): Record[] {
+  return streaks.filter((s) => s.length >= 2).map((s) => ({
+    label: '',
+    value: s.length,
+    player: s.player,
+    context: sameGame(s.from, s.to) ? where(s.from) : `${where(s.from)} to ${where(s.to)}`,
+    detail: s.active ? 'Still going' : undefined,
+  }));
+}
+
 export interface RecordCategory {
   title: string;
   records: Record[];
@@ -256,6 +289,12 @@ export function computeAllRecords(
     title: 'Most Hockey Assists in a Tournament',
     records: findTopNTournamentRecords(games, tournaments, players, countHockeyAssists, topN),
   });
+
+  // Streaks: each player's best, so one player can't fill a whole board
+  const allowed = new Set(players);
+  for (const [title, streaks] of streakBoards(games)) {
+    categories.push({ title, records: streakRecords(bestPerPlayer(streaks, allowed, topN)) });
+  }
 
   // Longest points
   const longestPoints = [...points]
@@ -381,6 +420,11 @@ export function computePlayerRecords(
   // Hockey assists
   categories.push({ title: 'Most Hockey Assists in a Game', records: playerGameRecords(countHockeyAssists) });
   categories.push({ title: 'Most Hockey Assists in a Tournament', records: playerTournamentRecords(countHockeyAssists) });
+
+  // This player's own longest streaks
+  for (const [title, streaks] of streakBoards(games)) {
+    categories.push({ title, records: streakRecords(longestFor(streaks, player, topN)) });
+  }
 
   // Longest points this player was on
   const longestPlayerPoints = [...playerPoints]

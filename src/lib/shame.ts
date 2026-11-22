@@ -1,4 +1,5 @@
 import { computeConnections, computeThrowerAccuracy } from './connections';
+import { playedInOrder } from './streaks';
 import { plusMinusTable } from './teamStats';
 import { Game, PlayerPointScore, Point, RawEvent } from './types';
 
@@ -33,17 +34,6 @@ function formatContext(point: { tournament: string; opponent: string; dateTime: 
 
 const named = (player: string | undefined): player is string =>
   !!player && !IGNORED_PLAYERS.has(player);
-
-// Events in the order they were played: games by date, then points, then events.
-function playedInOrder(games: Game[]): { ev: RawEvent; point: Point }[] {
-  const ordered: { ev: RawEvent; point: Point }[] = [];
-  for (const game of games) {
-    for (const point of game.points) {
-      for (const ev of point.events) ordered.push({ ev, point });
-    }
-  }
-  return ordered;
-}
 
 interface Streak {
   player: string;
