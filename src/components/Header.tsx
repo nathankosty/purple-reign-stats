@@ -34,7 +34,7 @@ export function Header({ onSecretUnlock }: { onSecretUnlock?: () => void }) {
           <h1 className="text-xl font-bold bg-gradient-to-r from-purple-300 to-purple-100 bg-clip-text text-transparent">
             Purple Reign Stats
           </h1>
-          <p className="text-xs text-purple-400/60">Most Valuable Points</p>
+          <p className="text-xs text-purple-400/60">Created by Nathan Kostynick</p>
         </div>
       </div>
 
