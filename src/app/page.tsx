@@ -8,6 +8,7 @@ import { TopPointsList } from '@/components/TopPointsList';
 import { RecordsBoard } from '@/components/RecordsBoard';
 import { TeamStats } from '@/components/TeamStats';
 import { Development } from '@/components/Development';
+import { Ratings } from '@/components/Ratings';
 import { PlayerRecords } from '@/components/PlayerRecords';
 import { RoleManager } from '@/components/RoleManager';
 import { HallOfShame } from '@/components/HallOfShame';
@@ -17,6 +18,7 @@ type Tab =
   | 'points'
   | 'tournaments'
   | 'development'
+  | 'ratings'
   | 'records'
   | 'player-records'
   | 'roles'
@@ -54,10 +56,10 @@ function AppContent() {
       <Header onSecretUnlock={toggleShame} />
 
       {/* Tab bar */}
-      <div className="flex border-b border-purple-800/30 bg-[#0d0717]/60 px-6">
+      <div className="flex border-b border-purple-800/30 bg-[#0d0717]/60 px-6 overflow-x-auto [scrollbar-width:thin]">
         <button
           onClick={() => setTab('points')}
-          className={`px-5 py-2.5 text-sm font-medium transition-colors relative ${
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap shrink-0 ${
             tab === 'points'
               ? 'text-purple-200'
               : 'text-purple-400/50 hover:text-purple-300'
@@ -70,7 +72,7 @@ function AppContent() {
         </button>
         <button
           onClick={() => setTab('tournaments')}
-          className={`px-5 py-2.5 text-sm font-medium transition-colors relative ${
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap shrink-0 ${
             tab === 'tournaments'
               ? 'text-purple-200'
               : 'text-purple-400/50 hover:text-purple-300'
@@ -83,7 +85,7 @@ function AppContent() {
         </button>
         <button
           onClick={() => setTab('development')}
-          className={`px-5 py-2.5 text-sm font-medium transition-colors relative ${
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap shrink-0 ${
             tab === 'development'
               ? 'text-purple-200'
               : 'text-purple-400/50 hover:text-purple-300'
@@ -95,8 +97,21 @@ function AppContent() {
           )}
         </button>
         <button
+          onClick={() => setTab('ratings')}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap shrink-0 ${
+            tab === 'ratings'
+              ? 'text-purple-200'
+              : 'text-purple-400/50 hover:text-purple-300'
+          }`}
+        >
+          Ratings
+          {tab === 'ratings' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 rounded-full" />
+          )}
+        </button>
+        <button
           onClick={() => setTab('records')}
-          className={`px-5 py-2.5 text-sm font-medium transition-colors relative ${
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap shrink-0 ${
             tab === 'records'
               ? 'text-purple-200'
               : 'text-purple-400/50 hover:text-purple-300'
@@ -109,7 +124,7 @@ function AppContent() {
         </button>
         <button
           onClick={() => setTab('player-records')}
-          className={`px-5 py-2.5 text-sm font-medium transition-colors relative ${
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap shrink-0 ${
             tab === 'player-records'
               ? 'text-purple-200'
               : 'text-purple-400/50 hover:text-purple-300'
@@ -123,7 +138,7 @@ function AppContent() {
         {shameUnlocked && (
           <button
             onClick={() => setTab('shame')}
-            className={`px-5 py-2.5 text-sm font-medium transition-colors relative ${
+            className={`px-4 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap shrink-0 ${
               tab === 'shame'
                 ? 'text-rose-200'
                 : 'text-rose-400/50 hover:text-rose-300'
@@ -137,7 +152,7 @@ function AppContent() {
         )}
         <button
           onClick={() => setTab('roles')}
-          className={`px-5 py-2.5 text-sm font-medium transition-colors relative ${
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap shrink-0 ${
             tab === 'roles'
               ? 'text-purple-200'
               : 'text-purple-400/50 hover:text-purple-300'
@@ -185,6 +200,7 @@ function AppContent() {
 
         {tab === 'tournaments' && <TeamStats />}
         {tab === 'development' && <Development />}
+        {tab === 'ratings' && <Ratings />}
         {tab === 'records' && <RecordsBoard />}
         {tab === 'player-records' && <PlayerRecords />}
         {tab === 'roles' && <RoleManager />}
