@@ -1,6 +1,7 @@
 'use client';
 
-import { ATTRIBUTES, DEV_TRAITS, DevTrait, PlayerRating } from '@/lib/ratings';
+import { Ability, ABILITIES, ATTRIBUTES, CALLAHAN_CLUB, DEV_TRAITS, DevTrait, PlayerRating } from '@/lib/ratings';
+import { ordinal } from './RankLine';
 
 // X-Factor red, Superstar yellow, Star silver, Normal bronze. The label always
 // travels with the color, so the tier never rests on color alone.
@@ -26,6 +27,15 @@ export function DevTraitBadge({ trait, growth }: { trait: DevTrait; growth?: num
       {trait}
     </span>
   );
+}
+
+// What the ability means, and where this player stands on it.
+function abilityTooltip(a: Ability): string {
+  if (a.key === 'callahan') return CALLAHAN_CLUB.meaning;
+  const def = ABILITIES.find((d) => d.key === a.key);
+  if (!def || a.rank === null) return a.name;
+  const standing = a.rank === 1 ? 'Best on the roster' : `${ordinal(a.rank)} of ${a.of} on the roster`;
+  return `${def.meaning} ${a.niche ? `Their best niche: ${standing.toLowerCase()}` : standing}. Based on ${def.basis}.`;
 }
 
 function Change({ value }: { value: number | null }) {
@@ -90,14 +100,16 @@ export function RatingCard({ rating, compact = false }: { rating: PlayerRating; 
         <div className="px-4 pb-4 flex flex-wrap gap-1.5">
           {rating.abilities.map((a) => (
             <span
-              key={a.attr}
-              className={`text-[11px] px-2 py-0.5 rounded-md border ${
+              key={a.key}
+              title={abilityTooltip(a)}
+              className={`text-[11px] px-2 py-0.5 rounded-md border cursor-help ${
                 a.zone
                   ? 'border-red-400/60 bg-red-500/10 text-red-200 font-semibold'
                   : 'border-purple-700/60 bg-purple-900/30 text-purple-200'
               }`}
             >
               {a.zone ? `Zone: ${a.name}` : a.name}
+              {a.rank === 1 && <span className="ml-1 text-[10px] text-purple-300/70">1st</span>}
             </span>
           ))}
         </div>

@@ -161,7 +161,7 @@ export function PlayerRecords() {
     () => computeDevelopment(games, playerScores),
     [games, playerScores]
   );
-  const ratings = useMemo(() => computeRatings(games), [games]);
+  const ratings = useMemo(() => computeRatings(games, playerScores), [games, playerScores]);
 
   // The same ranking the Tournaments tab shows for an MVP, one row per
   // tournament this player actually played, newest first.

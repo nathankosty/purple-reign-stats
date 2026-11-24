@@ -6,10 +6,12 @@ import { DevTraitBadge, RatingCard } from './RatingCard';
 import { LineChart } from './charts/LineChart';
 import { computeDevelopment } from '@/lib/development';
 import {
-  ABILITY_RATING,
+  AbilityGroup,
+  ABILITIES,
   Archetype,
   ATTRIBUTES,
   computeRatings,
+  CALLAHAN_CLUB,
   DEV_TRAITS,
   HALF_LIFE_GAMES,
   MIN_RATED_POINTS,
@@ -23,7 +25,7 @@ export function Ratings() {
   const [showInactive, setShowInactive] = useState(false);
   const [compare, setCompare] = useState('');
 
-  const data = useMemo(() => computeRatings(games), [games]);
+  const data = useMemo(() => computeRatings(games, playerScores), [games, playerScores]);
   // Season labels and short tournament names come from the development timeline.
   const timeline = useMemo(() => computeDevelopment(games, playerScores).timeline, [games, playerScores]);
   const compared = data.players.find((p) => p.player === compare);
@@ -111,6 +113,45 @@ export function Ratings() {
         </div>
       </div>
 
+      <details className="bg-[#1a0f2e]/60 border border-purple-800/30 rounded-xl p-4 group">
+        <summary className="text-xs font-semibold text-purple-200 uppercase tracking-wider cursor-pointer select-none">
+          Abilities <span className="normal-case font-normal tracking-normal text-purple-400/60">
+            ({ABILITIES.length + 1}) what each one means
+          </span>
+        </summary>
+        <p className="text-xs text-purple-300/80 mt-2 max-w-3xl">
+          Abilities are niches, judged on the same recent form as the overall. Each one goes to up to
+          three players on the active roster and each player holds up to three, handed out best finish
+          first, so stars keep their strongest and the rest of the spots spread across the team. Anyone
+          left without one gets their single best category, so every regular has something
+          they&apos;re known for. An X-Factor&apos;s best ability becomes a zone ability. Hover an ability
+          on a card to see where that player ranks.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-3 mt-3">
+          {(['Throwing', 'Receiving', 'Defense', 'On the field', 'Workload'] as AbilityGroup[]).map((group) => (
+            <div key={group}>
+              <p className="text-[11px] text-purple-400/60 uppercase tracking-wider mb-1">{group}</p>
+              <ul className="space-y-1.5">
+                {ABILITIES.filter((a) => a.group === group).map((a) => (
+                  <li key={a.key} className="text-xs">
+                    <span className="font-semibold text-purple-100">{a.name}</span>{' '}
+                    <span className="text-purple-300/80">{a.meaning}</span>{' '}
+                    <span className="text-purple-400/50">Based on {a.basis}.</span>
+                  </li>
+                ))}
+                {group === 'Defense' && (
+                  <li className="text-xs">
+                    <span className="font-semibold text-purple-100">{CALLAHAN_CLUB.name}</span>{' '}
+                    <span className="text-purple-300/80">{CALLAHAN_CLUB.meaning}</span>{' '}
+                    <span className="text-purple-400/50">Earned by {CALLAHAN_CLUB.basis}.</span>
+                  </li>
+                )}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </details>
+
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex rounded-lg overflow-hidden border border-purple-800/50">
           {(['All', 'Handler', 'Hybrid', 'Cutter'] as ArchetypeFilter[]).map((a) => (
@@ -155,10 +196,7 @@ export function Ratings() {
           touches are throws: handlers lean on accuracy, usage, and playmaking, cutters on scoring and
           hands, hybrids on a mix.
         </p>
-        <p>
-          An attribute of {ABILITY_RATING}+ earns its ability, and an X-Factor&apos;s best one becomes a
-          zone ability. Older games fade with a half-life of {HALF_LIFE_GAMES} games.
-        </p>
+        <p>Older games fade with a half-life of {HALF_LIFE_GAMES} games.</p>
       </div>
     </div>
   );
