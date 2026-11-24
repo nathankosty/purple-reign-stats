@@ -9,12 +9,27 @@ const IGNORED_PLAYERS = new Set(['Default']);
 export const HALF_LIFE_GAMES = 5;
 // A rating needs this many points of (decayed) playing time behind it.
 export const MIN_RATED_POINTS = 20;
-// Attributes are graded against every rated snapshot in team history:
-// 70 is a typical performance and each 10 points is one standard deviation.
-const SCALE_MEAN = 70;
-const SCALE_SD = 10;
-const FLOOR = 40;
+// Every rating is graded against every rated snapshot in team history, as a
+// number of standard deviations above or below the team's typical performance.
 const CEILING = 99;
+
+// Attributes: average shows as 78, each standard deviation above adds 8, and
+// below average the rating eases toward the high 60s instead of falling off,
+// so a weak spot on a good player reads as a weak spot, not a failing grade.
+// There is no hard floor; the curve just flattens.
+const ATTR_CENTER = 78;
+const ATTR_PER_SD_ABOVE = 8;
+const ATTR_SOFT_DEPTH = 10;
+const ATTR_SOFT_SCALE = 1.5;
+const attributeFromZ = (z: number) =>
+  Math.min(
+    CEILING,
+    Math.round(
+      z >= 0
+        ? ATTR_CENTER + ATTR_PER_SD_ABOVE * z
+        : ATTR_CENTER - ATTR_SOFT_DEPTH * (1 - Math.exp(z / ATTR_SOFT_SCALE))
+    )
+  );
 
 // Overall uses its own, friendlier display scale over the same ranking: the
 // team's historical average shows as 78, each standard deviation above adds 7,
@@ -222,8 +237,6 @@ export interface RatingsData {
   teamHistory: (number | null)[]; // points-weighted team overall at the end of each tournament
 }
 
-const clampRating = (z: number) =>
-  Math.min(CEILING, Math.max(FLOOR, Math.round(SCALE_MEAN + SCALE_SD * z)));
 
 function meanSd(values: number[]): { mean: number; sd: number } {
   const mean = values.reduce((s, v) => s + v, 0) / values.length;
@@ -341,7 +354,7 @@ function rateSnapshots(snapshots: Snapshot[]): void {
     const { mean, sd } = meanSd(rated.map((s) => s.attrRaw[key]));
     for (const s of rated) {
       s.z[key] = (s.attrRaw[key] - mean) / sd;
-      s.attrs[key] = clampRating(s.z[key]);
+      s.attrs[key] = attributeFromZ(s.z[key]);
     }
   }
   for (const s of rated) {

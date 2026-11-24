@@ -88,7 +88,7 @@ export function RatingCard({ rating, compact = false }: { rating: PlayerRating; 
               <div className="h-1.5 rounded-full bg-purple-950/80 mt-0.5 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-purple-500"
-                  style={{ width: `${Math.max(4, ((value - 40) / 59) * 100)}%` }}
+                  style={{ width: `${Math.max(4, ((value - 60) / 39) * 100)}%` }}
                 />
               </div>
             </div>
