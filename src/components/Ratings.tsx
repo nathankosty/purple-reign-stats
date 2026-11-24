@@ -2,17 +2,31 @@
 
 import { useMemo, useState } from 'react';
 import { useStats } from './StatsProvider';
-import { RatingCard } from './RatingCard';
-import { ABILITY_RATING, Archetype, ATTRIBUTES, computeRatings, HALF_LIFE_GAMES, MIN_RATED_POINTS } from '@/lib/ratings';
+import { DevTraitBadge, RatingCard } from './RatingCard';
+import { LineChart } from './charts/LineChart';
+import { computeDevelopment } from '@/lib/development';
+import {
+  ABILITY_RATING,
+  Archetype,
+  ATTRIBUTES,
+  computeRatings,
+  DEV_TRAITS,
+  HALF_LIFE_GAMES,
+  MIN_RATED_POINTS,
+} from '@/lib/ratings';
 
 type ArchetypeFilter = 'All' | Archetype;
 
 export function Ratings() {
-  const { games, loading } = useStats();
+  const { games, playerScores, loading } = useStats();
   const [archetype, setArchetype] = useState<ArchetypeFilter>('All');
   const [showInactive, setShowInactive] = useState(false);
+  const [compare, setCompare] = useState('');
 
   const data = useMemo(() => computeRatings(games), [games]);
+  // Season labels and short tournament names come from the development timeline.
+  const timeline = useMemo(() => computeDevelopment(games, playerScores).timeline, [games, playerScores]);
+  const compared = data.players.find((p) => p.player === compare);
   const shown = data.players.filter(
     (p) => (archetype === 'All' || p.archetype === archetype) && (showInactive || p.active)
   );
@@ -37,6 +51,64 @@ export function Ratings() {
           standard deviation, and 90+ is rare. Updated after every game, with older games fading, so
           a game from one tournament ago counts half as much as this weekend&apos;s.
         </p>
+      </div>
+
+      <div className="bg-[#1a0f2e]/80 border border-purple-800/30 rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-purple-800/30 flex flex-wrap items-center gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <h3 className="text-sm font-semibold text-purple-200">Team Overall</h3>
+            <p className="text-xs text-purple-400/50 mt-0.5">
+              Every rated player&apos;s overall at the end of each tournament, weighted by the points they
+              played in it, so regulars count more than cameos.
+            </p>
+          </div>
+          <select
+            value={compare}
+            onChange={(e) => setCompare(e.target.value)}
+            className="bg-[#1a0f2e] border border-purple-800/50 rounded-lg px-3 py-1.5 text-xs text-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="">Compare a player...</option>
+            {data.players.map((p) => (
+              <option key={p.player} value={p.player}>
+                {p.player}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="p-4">
+          <LineChart
+            categories={timeline.map((e) => ({ label: e.short, full: e.tournament, group: e.season }))}
+            series={
+              compared
+                ? [
+                    { name: compared.player, color: '#a855f7', values: compared.history.map((h) => h.ovr) },
+                    { name: 'Team overall', color: '#898781', values: data.teamHistory },
+                  ]
+                : [{ name: 'Team overall', color: '#a855f7', values: data.teamHistory }]
+            }
+            format={(v) => `${Math.round(v)}`}
+            ariaLabel={
+              compared
+                ? `Team overall by tournament against ${compared.player}`
+                : 'Team overall by tournament'
+            }
+            domainMin={40}
+          />
+        </div>
+      </div>
+
+      <div className="bg-[#1a0f2e]/60 border border-purple-800/30 rounded-xl p-4">
+        <p className="text-xs font-semibold text-purple-200 uppercase tracking-wider mb-2">Dev traits</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+          {DEV_TRAITS.map(({ trait, meaning }) => (
+            <div key={trait} className="flex items-start gap-2 text-xs">
+              <span className="shrink-0 w-[86px]">
+                <DevTraitBadge trait={trait} />
+              </span>
+              <span className="text-purple-300/80 leading-relaxed">{meaning}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -74,7 +146,7 @@ export function Ratings() {
       <div className="bg-[#1a0f2e]/60 border border-purple-800/30 rounded-xl p-4 text-xs text-purple-300/80 space-y-2 max-w-3xl">
         <p className="font-semibold text-purple-200">How the ratings work</p>
         <p>
-          {ATTRIBUTES.map((a) => `${a.key} is ${a.describes}`).join('; ')}. Every rate is pulled
+          {ATTRIBUTES.map((a) => `${a.name} is ${a.describes}`).join('; ')}. Every rate is pulled
           toward the team average until there is enough playing time behind it, and a player needs{' '}
           {MIN_RATED_POINTS} points of recent playing time to be rated at all.
         </p>
@@ -84,10 +156,8 @@ export function Ratings() {
           hands, hybrids on a mix.
         </p>
         <p>
-          Dev traits follow growth over a player&apos;s last 12 games: Superstar at +10 or more, Star at
-          +4, Normal otherwise. X-Factor is reserved for a current overall of 90+, and Hidden means
-          too few games to read a trajectory yet. An attribute of {ABILITY_RATING}+ earns its ability,
-          and an X-Factor&apos;s best one becomes a zone ability. The half-life is {HALF_LIFE_GAMES} games.
+          An attribute of {ABILITY_RATING}+ earns its ability, and an X-Factor&apos;s best one becomes a
+          zone ability. Older games fade with a half-life of {HALF_LIFE_GAMES} games.
         </p>
       </div>
     </div>

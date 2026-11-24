@@ -1,14 +1,32 @@
 'use client';
 
-import { ATTRIBUTES, DevTrait, PlayerRating } from '@/lib/ratings';
+import { ATTRIBUTES, DEV_TRAITS, DevTrait, PlayerRating } from '@/lib/ratings';
 
+// X-Factor red, Superstar yellow, Star silver, Normal bronze. The label always
+// travels with the color, so the tier never rests on color alone.
 const TRAIT_STYLE: Record<DevTrait, string> = {
-  'X-Factor': 'bg-amber-400/15 text-amber-200 border-amber-300/50',
-  Superstar: 'bg-purple-500/25 text-purple-100 border-purple-300/60',
-  Star: 'bg-sky-500/15 text-sky-200 border-sky-300/40',
-  Normal: 'bg-slate-500/15 text-slate-300 border-slate-400/30',
+  'X-Factor': 'bg-red-500/15 text-red-200 border-red-400/60',
+  Superstar: 'bg-yellow-400/15 text-yellow-200 border-yellow-300/60',
+  Star: 'bg-slate-300/15 text-slate-100 border-slate-300/60',
+  Normal: 'bg-[#b87333]/15 text-[#e3a46f] border-[#b87333]/60',
   Hidden: 'bg-transparent text-purple-400/70 border-purple-700/60',
 };
+
+export function DevTraitBadge({ trait, growth }: { trait: DevTrait; growth?: number | null }) {
+  const meaning = DEV_TRAITS.find((d) => d.trait === trait)?.meaning ?? '';
+  const trend =
+    growth === null || growth === undefined
+      ? ''
+      : ` (${growth > 0 ? '+' : ''}${growth} over their last 12 games)`;
+  return (
+    <span
+      className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${TRAIT_STYLE[trait]}`}
+      title={`${meaning}${trend}`}
+    >
+      {trait}
+    </span>
+  );
+}
 
 function Change({ value }: { value: number | null }) {
   if (value === null || value === 0) {
@@ -28,7 +46,7 @@ export function RatingCard({ rating, compact = false }: { rating: PlayerRating; 
       <div className="px-4 pt-4 pb-3 flex items-start gap-4">
         <div className="text-center shrink-0">
           <div className="text-4xl font-bold text-purple-50 leading-none">{rating.ovr}</div>
-          <div className="text-[10px] text-purple-400/60 uppercase tracking-wider mt-1">OVR</div>
+          <div className="text-[10px] text-purple-400/60 uppercase tracking-wider mt-1">Overall</div>
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
@@ -37,16 +55,7 @@ export function RatingCard({ rating, compact = false }: { rating: PlayerRating; 
           </div>
           <div className="flex flex-wrap items-center gap-1.5 mt-1">
             <span className="text-xs text-purple-300">{rating.archetype}</span>
-            <span
-              className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${TRAIT_STYLE[rating.devTrait]}`}
-              title={
-                rating.devTrait === 'Hidden'
-                  ? 'Too early to read a trajectory'
-                  : `${rating.growth! > 0 ? '+' : ''}${rating.growth} over their last 12 games`
-              }
-            >
-              {rating.devTrait}
-            </span>
+            <DevTraitBadge trait={rating.devTrait} growth={rating.growth} />
           </div>
           <div className="text-[11px] text-purple-400/50 mt-1">
             Career {rating.careerOvr ?? '-'} {'·'} {rating.gamesPlayed} games
@@ -56,12 +65,12 @@ export function RatingCard({ rating, compact = false }: { rating: PlayerRating; 
       </div>
 
       <div className={`px-4 pb-3 grid ${compact ? 'grid-cols-2' : 'grid-cols-3'} gap-x-4 gap-y-2`}>
-        {ATTRIBUTES.map(({ key, name }) => {
+        {ATTRIBUTES.map(({ key, name, describes }) => {
           const value = rating.attrs[key];
           return (
-            <div key={key} title={name}>
-              <div className="flex items-baseline justify-between">
-                <span className="text-[11px] text-purple-400/70 font-medium">{key}</span>
+            <div key={key} title={`${name}: ${describes}`}>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[11px] text-purple-300/80 font-medium truncate">{name}</span>
                 <span className="text-sm font-semibold text-purple-100" style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {value}
                 </span>
@@ -84,7 +93,7 @@ export function RatingCard({ rating, compact = false }: { rating: PlayerRating; 
               key={a.attr}
               className={`text-[11px] px-2 py-0.5 rounded-md border ${
                 a.zone
-                  ? 'border-amber-300/50 bg-amber-400/10 text-amber-200 font-semibold'
+                  ? 'border-red-400/60 bg-red-500/10 text-red-200 font-semibold'
                   : 'border-purple-700/60 bg-purple-900/30 text-purple-200'
               }`}
             >
