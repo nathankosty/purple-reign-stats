@@ -1,6 +1,15 @@
 'use client';
 
-import { Ability, ABILITIES, ATTRIBUTES, CALLAHAN_CLUB, DEV_TRAITS, DevTrait, PlayerRating } from '@/lib/ratings';
+import {
+  Ability,
+  ABILITIES,
+  ATTRIBUTES,
+  CALLAHAN_CLUB,
+  DEV_TRAITS,
+  DevTrait,
+  PlayerRating,
+  POSITIONS,
+} from '@/lib/ratings';
 import { ordinal } from './RankLine';
 
 // X-Factor red, Superstar yellow, Star silver, Normal bronze. The label always
@@ -67,7 +76,17 @@ export function RatingCard({ rating, compact = false }: { rating: PlayerRating; 
             <span className="text-xs text-purple-300">{rating.archetype}</span>
             <DevTraitBadge trait={rating.devTrait} growth={rating.growth} />
           </div>
-          <div className="text-[11px] text-purple-400/50 mt-1">
+          <div className="text-[11px] mt-1" title="Overall at each position; the main overall is the best of the three">
+            {POSITIONS.map((pos, i) => (
+              <span key={pos}>
+                {i > 0 && <span className="text-purple-500/50">{' · '}</span>}
+                <span className={pos === rating.bestPosition ? 'text-purple-100 font-semibold' : 'text-purple-400/70'}>
+                  {pos} {rating.positionOvr[pos]}
+                </span>
+              </span>
+            ))}
+          </div>
+          <div className="text-[11px] text-purple-400/50 mt-0.5">
             Career {rating.careerOvr ?? '-'} {'·'} {rating.gamesPlayed} games
             {!rating.active && ' · inactive'}
           </div>

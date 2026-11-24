@@ -50,7 +50,7 @@ export type DevTrait = 'X-Factor' | 'Superstar' | 'Star' | 'Normal' | 'Hidden';
 
 const TREND_GAMES = 12; // growth window for dev traits, about 2-3 tournaments
 const ACTIVE_WINDOW_GAMES = 15; // team games; roughly the last three tournaments
-const X_FACTOR_OVR = 90;
+const X_FACTOR_OVR = 94; // kept rare: the main overall is a best-of-three
 // A trait can be earned by level or by growth, so a player who has plateaued
 // at a high level is still recognized, and so is one climbing fast from below.
 const SUPERSTAR_OVR = 85;
@@ -89,29 +89,24 @@ export const ATTRIBUTES: { key: Attr; name: string; describes: string }[] = [
   { key: 'DEF', name: 'Defense', describes: 'Ds per point' },
 ];
 
-// What an overall leans on at the two ends of the throwing spectrum: handlers
-// are judged on moving the disc, cutters on finishing. Every player's weights
-// are blended between the two by how much of their touches are throws, so
-// there is no cliff where one point of throw share swings an overall.
+// What an overall leans on at each position: handlers are judged on moving the
+// disc, cutters on finishing, and a hybrid sits halfway between. Every player
+// is rated at all three, and their main overall is the best of the three.
+export const POSITIONS: Archetype[] = ['Handler', 'Hybrid', 'Cutter'];
 const CUTTER_WEIGHTS: Record<Attr, number> = { ACC: 0.1, USG: 0.1, PLY: 0.1, HND: 0.2, SCR: 0.32, DEF: 0.18 };
 const HANDLER_WEIGHTS: Record<Attr, number> = { ACC: 0.27, USG: 0.22, PLY: 0.24, HND: 0.05, SCR: 0.05, DEF: 0.17 };
-// Where the blend is fully cutter and fully handler.
-const CUTTER_SHARE = 0.42;
-const HANDLER_SHARE = 0.55;
+const POSITION_WEIGHTS: Record<Archetype, Record<Attr, number>> = {
+  Handler: HANDLER_WEIGHTS,
+  Cutter: CUTTER_WEIGHTS,
+  Hybrid: Object.fromEntries(
+    (Object.keys(CUTTER_WEIGHTS) as Attr[]).map((k) => [k, (CUTTER_WEIGHTS[k] + HANDLER_WEIGHTS[k]) / 2])
+  ) as Record<Attr, number>,
+};
 
-// The archetype label is separate from the weights: Hybrid is a narrow band
-// around an even split, so it means a player who genuinely does both.
+// The archetype label describes how a player actually plays, from the share of
+// their touches that are throws. Hybrid is a narrow band around an even split.
 const CUTTER_LABEL_SHARE = 0.46;
 const HANDLER_LABEL_SHARE = 0.5;
-
-function weightsFor(throwShare: number): Record<Attr, number> {
-  const t = Math.min(1, Math.max(0, (throwShare - CUTTER_SHARE) / (HANDLER_SHARE - CUTTER_SHARE)));
-  const blended = {} as Record<Attr, number>;
-  for (const key of Object.keys(CUTTER_WEIGHTS) as Attr[]) {
-    blended[key] = CUTTER_WEIGHTS[key] * (1 - t) + HANDLER_WEIGHTS[key] * t;
-  }
-  return blended;
-}
 
 const FIELDS = [
   'pts', 'comp', 'tas', 'catches', 'drops', 'goals', 'ast', 'hast', 'ds', 'touches', 'slots', 'throws',
@@ -132,12 +127,11 @@ interface Snapshot {
   sums: Line;
   attrRaw: Record<Attr, number>;
   archetype: Archetype;
-  throwShare: number;
   rated: boolean;
   z: Record<Attr, number>;
   attrs: Record<Attr, number>;
-  ovrRaw: number;
-  ovr: number;
+  ovrByPos: Record<Archetype, number>;
+  ovr: number; // the best of the three positions
 }
 
 // ---------------------------------------------------------------------------
@@ -218,6 +212,8 @@ export interface PlayerRating {
   player: string;
   archetype: Archetype;
   ovr: number;
+  positionOvr: Record<Archetype, number>;
+  bestPosition: Archetype;
   careerOvr: number | null;
   attrs: Record<Attr, number>;
   devTrait: DevTrait;
@@ -357,12 +353,17 @@ function rateSnapshots(snapshots: Snapshot[]): void {
       s.attrs[key] = attributeFromZ(s.z[key]);
     }
   }
-  for (const s of rated) {
-    const w = weightsFor(s.throwShare);
-    s.ovrRaw = ATTRIBUTES.reduce((sum, { key }) => sum + w[key] * s.z[key], 0);
+  // Each position is graded against every snapshot's score at that same
+  // position, so a Cutter 88 means the same thing for everyone.
+  for (const pos of POSITIONS) {
+    const w = POSITION_WEIGHTS[pos];
+    const raws = rated.map((s) => ATTRIBUTES.reduce((sum, { key }) => sum + w[key] * s.z[key], 0));
+    const { mean, sd } = meanSd(raws);
+    rated.forEach((s, i) => {
+      s.ovrByPos[pos] = overallFromZ((raws[i] - mean) / sd);
+    });
   }
-  const { mean, sd } = meanSd(rated.map((s) => s.ovrRaw));
-  for (const s of rated) s.ovr = overallFromZ((s.ovrRaw - mean) / sd);
+  for (const s of rated) s.ovr = Math.max(...POSITIONS.map((pos) => s.ovrByPos[pos]));
 }
 
 export function computeRatings(
@@ -431,11 +432,10 @@ export function computeRatings(
           sums,
           attrRaw: attrRaw(sums),
           archetype: archetypeOf(sums),
-          throwShare: throwShareOf(sums),
           rated: sums.pts >= MIN_RATED_POINTS,
           z: {} as Record<Attr, number>,
           attrs: {} as Record<Attr, number>,
-          ovrRaw: 0,
+          ovrByPos: { Handler: 0, Hybrid: 0, Cutter: 0 },
           ovr: 0,
         });
       }
@@ -482,6 +482,12 @@ export function computeRatings(
       player,
       archetype: latest.archetype,
       ovr: latest.ovr,
+      positionOvr: latest.ovrByPos,
+      // On a tie, the position they actually play wins.
+      bestPosition:
+        latest.ovrByPos[latest.archetype] === latest.ovr
+          ? latest.archetype
+          : POSITIONS.find((pos) => latest.ovrByPos[pos] === latest.ovr)!,
       careerOvr: careerSnaps.length ? careerSnaps[careerSnaps.length - 1].ovr : null,
       attrs: latest.attrs,
       devTrait,
