@@ -13,6 +13,7 @@ import {
   computeRatings,
   CALLAHAN_CLUB,
   DEV_TRAITS,
+  FULL_SAMPLE_POINTS,
   HALF_LIFE_GAMES,
   MIN_RATED_POINTS,
   OVR_CENTER,
@@ -192,7 +193,9 @@ export function Ratings() {
           {ATTRIBUTES.map((a) => `${a.name} is ${a.describes}`).join('; ')}. An average attribute shows
           as 78, and below average a rating levels off in the high 60s rather than dropping away. Every rate is pulled
           toward the team average until there is enough playing time behind it, and a player needs{' '}
-          {MIN_RATED_POINTS} points of recent playing time to be rated at all.
+          {MIN_RATED_POINTS} points of recent playing time to be rated at all. An overall then firms up
+          over the first {FULL_SAMPLE_POINTS} points: until then it is pulled toward average, and a newer
+          player&apos;s dev trait stays Hidden until there are enough games to judge.
         </p>
         <p>
           Every player is rated at all three positions. A handler&apos;s overall leans on accuracy,

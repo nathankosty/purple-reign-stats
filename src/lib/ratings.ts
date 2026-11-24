@@ -9,6 +9,10 @@ const IGNORED_PLAYERS = new Set(['Default']);
 export const HALF_LIFE_GAMES = 5;
 // A rating needs this many points of (decayed) playing time behind it.
 export const MIN_RATED_POINTS = 20;
+// An overall firms up over this much (decayed) playing time. Below it, the
+// overall is pulled toward average in proportion, so a few big shifts can't
+// make a star before there's enough to go on.
+export const FULL_SAMPLE_POINTS = 40;
 // Every rating is graded against every rated snapshot in team history, as a
 // number of standard deviations above or below the team's typical performance.
 const CEILING = 99;
@@ -132,6 +136,9 @@ interface Snapshot {
   attrs: Record<Attr, number>;
   ovrByPos: Record<Archetype, number>;
   ovr: number; // the best of the three positions
+  // The same, without the small-sample pull. Growth is measured on this, so a
+  // newcomer's rating firming up isn't mistaken for improvement.
+  trendOvr: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -221,6 +228,7 @@ export interface PlayerRating {
   abilities: Ability[];
   change: number | null; // since the end of their previous tournament
   active: boolean;
+  provisional: boolean; // still firming up: under FULL_SAMPLE_POINTS of recent play
   gamesPlayed: number;
   latestSums: Line;
   careerCallahans: number;
@@ -355,15 +363,21 @@ function rateSnapshots(snapshots: Snapshot[]): void {
   }
   // Each position is graded against every snapshot's score at that same
   // position, so a Cutter 88 means the same thing for everyone.
+  const unshrunk = new Map<Snapshot, number>();
   for (const pos of POSITIONS) {
     const w = POSITION_WEIGHTS[pos];
     const raws = rated.map((s) => ATTRIBUTES.reduce((sum, { key }) => sum + w[key] * s.z[key], 0));
     const { mean, sd } = meanSd(raws);
     rated.forEach((s, i) => {
-      s.ovrByPos[pos] = overallFromZ((raws[i] - mean) / sd);
+      const z = (raws[i] - mean) / sd;
+      s.ovrByPos[pos] = overallFromZ(z * Math.min(1, s.sums.pts / FULL_SAMPLE_POINTS));
+      unshrunk.set(s, Math.max(unshrunk.get(s) ?? 0, overallFromZ(z)));
     });
   }
-  for (const s of rated) s.ovr = Math.max(...POSITIONS.map((pos) => s.ovrByPos[pos]));
+  for (const s of rated) {
+    s.ovr = Math.max(...POSITIONS.map((pos) => s.ovrByPos[pos]));
+    s.trendOvr = unshrunk.get(s)!;
+  }
 }
 
 export function computeRatings(
@@ -437,6 +451,7 @@ export function computeRatings(
           attrs: {} as Record<Attr, number>,
           ovrByPos: { Handler: 0, Hybrid: 0, Cutter: 0 },
           ovr: 0,
+          trendOvr: 0,
         });
       }
     }
@@ -462,18 +477,22 @@ export function computeRatings(
   for (const [player, snaps] of currentByPlayer) {
     const latest = snaps[snaps.length - 1];
     const careerSnaps = careerByPlayer.get(player) || [];
-    const growth = snaps.length > TREND_GAMES ? latest.ovr - snaps[snaps.length - 1 - TREND_GAMES].ovr : null;
+    const growth =
+      snaps.length > TREND_GAMES ? latest.trendOvr - snaps[snaps.length - 1 - TREND_GAMES].trendOvr : null;
 
     const rising = (bar: number) => growth !== null && growth >= bar;
-    const devTrait: DevTrait =
-      NAMED_X_FACTORS.has(player) || latest.ovr >= X_FACTOR_OVR
-        ? 'X-Factor'
-        : latest.ovr >= SUPERSTAR_OVR || rising(SUPERSTAR_GROWTH)
-          ? 'Superstar'
-          : latest.ovr >= STAR_OVR || rising(STAR_GROWTH)
-            ? 'Star'
-            : growth === null
-              ? 'Hidden'
+    // Like a Madden rookie, a newer player's trait stays Hidden until there are
+    // enough rated games to judge, however high the overall.
+    const devTrait: DevTrait = NAMED_X_FACTORS.has(player)
+      ? 'X-Factor'
+      : growth === null
+        ? 'Hidden'
+        : latest.ovr >= X_FACTOR_OVR
+          ? 'X-Factor'
+          : latest.ovr >= SUPERSTAR_OVR || rising(SUPERSTAR_GROWTH)
+            ? 'Superstar'
+            : latest.ovr >= STAR_OVR || rising(STAR_GROWTH)
+              ? 'Star'
               : 'Normal';
 
     const previous = [...snaps].reverse().find((s) => s.tournament !== latest.tournament);
@@ -495,6 +514,7 @@ export function computeRatings(
       abilities: [],
       change: previous ? latest.ovr - previous.ovr : null,
       active: latest.gameIndex >= lastTeamGame - ACTIVE_WINDOW_GAMES,
+      provisional: latest.sums.pts < FULL_SAMPLE_POINTS,
       gamesPlayed: lines.get(player)?.length ?? 0,
       latestSums: latest.sums,
       careerCallahans: careerSnaps.length ? careerSnaps[careerSnaps.length - 1].sums.cals : 0,
