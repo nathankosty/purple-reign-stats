@@ -3,7 +3,7 @@
 import { ChartCategory, LineChart } from './charts/LineChart';
 import { RatingCard } from './RatingCard';
 import { TimelineEntry } from '@/lib/development';
-import { MIN_RATED_POINTS, PlayerRating as Rating } from '@/lib/ratings';
+import { MIN_RATED_POINTS, OVR_FLOOR, PlayerRating as Rating } from '@/lib/ratings';
 
 // Same validated pair as the development chart: purple for the player's
 // current form, gray (de-emphasis) for the slower career line.
@@ -43,7 +43,7 @@ export function PlayerRating({ rating, timeline }: { rating: Rating | undefined;
               ]}
               format={(v) => `${Math.round(v)}`}
               ariaLabel={`${rating.player} overall rating by tournament, current form and career`}
-              domainMin={40}
+              domainMin={OVR_FLOOR}
             />
           )}
         </div>

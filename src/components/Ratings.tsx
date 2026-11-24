@@ -15,6 +15,7 @@ import {
   DEV_TRAITS,
   HALF_LIFE_GAMES,
   MIN_RATED_POINTS,
+  OVR_FLOOR,
 } from '@/lib/ratings';
 
 type ArchetypeFilter = 'All' | Archetype;
@@ -49,9 +50,9 @@ export function Ratings() {
       <div>
         <h2 className="text-2xl font-bold text-purple-100 mb-1">Ratings</h2>
         <p className="text-sm text-purple-400/60 max-w-3xl">
-          Graded against every performance in team history: 70 is typical, each 10 points is one
-          standard deviation, and 90+ is rare. Updated after every game, with older games fading, so
-          a game from one tournament ago counts half as much as this weekend&apos;s.
+          Graded against every performance in team history. A typical performance is a 77, nobody
+          rates below {OVR_FLOOR}, and 90+ is rare. Updated after every game, with older games fading,
+          so a game from one tournament ago counts half as much as this weekend&apos;s.
         </p>
       </div>
 
@@ -94,7 +95,7 @@ export function Ratings() {
                 ? `Team overall by tournament against ${compared.player}`
                 : 'Team overall by tournament'
             }
-            domainMin={40}
+            domainMin={OVR_FLOOR}
           />
         </div>
       </div>
