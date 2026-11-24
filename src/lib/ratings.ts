@@ -39,7 +39,7 @@ const X_FACTOR_OVR = 90;
 // A trait can be earned by level or by growth, so a player who has plateaued
 // at a high level is still recognized, and so is one climbing fast from below.
 const SUPERSTAR_OVR = 85;
-const SUPERSTAR_GROWTH = 6;
+const SUPERSTAR_GROWTH = 5;
 const STAR_OVR = 78;
 const STAR_GROWTH = 3;
 
