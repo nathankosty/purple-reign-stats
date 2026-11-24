@@ -16,6 +16,10 @@ const SCALE_SD = 10;
 const FLOOR = 40;
 const CEILING = 99;
 
+export type Attr = 'ACC' | 'HND' | 'USG' | 'SCR' | 'PLY' | 'DEF';
+export type Archetype = 'Handler' | 'Hybrid' | 'Cutter';
+export type DevTrait = 'X-Factor' | 'Superstar' | 'Star' | 'Normal' | 'Hidden';
+
 const TREND_GAMES = 12; // growth window for dev traits, about 2-3 tournaments
 const ACTIVE_WINDOW_GAMES = 15; // team games; roughly the last three tournaments
 const X_FACTOR_OVR = 90;
@@ -23,13 +27,25 @@ const SUPERSTAR_GROWTH = 10;
 const STAR_GROWTH = 4;
 export const ABILITY_RATING = 90;
 
-export type Attr = 'ACC' | 'HND' | 'USG' | 'SCR' | 'PLY' | 'DEF';
-export type Archetype = 'Handler' | 'Hybrid' | 'Cutter';
-export type DevTrait = 'X-Factor' | 'Superstar' | 'Star' | 'Normal' | 'Hidden';
+// Players the captain names as X-Factors regardless of the numbers. Some of
+// what makes a player great never shows up in the event log.
+export const NAMED_X_FACTORS = new Set(['Jack']);
+
+export const DEV_TRAITS: { trait: DevTrait; meaning: string }[] = [
+  {
+    trait: 'X-Factor',
+    meaning: `Elite. A current overall of ${X_FACTOR_OVR}+, or named by the captain. Their best ability becomes a zone ability.`,
+  },
+  { trait: 'Superstar', meaning: `Rising fast: up ${SUPERSTAR_GROWTH}+ overall across their last ${TREND_GAMES} games.` },
+  { trait: 'Star', meaning: `Improving: up ${STAR_GROWTH} to ${SUPERSTAR_GROWTH - 1} across their last ${TREND_GAMES} games.` },
+  { trait: 'Normal', meaning: `Holding steady or dipping: under +${STAR_GROWTH} across their last ${TREND_GAMES} games.` },
+  { trait: 'Hidden', meaning: `Too early to tell: fewer than ${TREND_GAMES} rated games so far.` },
+];
+
 
 export const ATTRIBUTES: { key: Attr; name: string; ability: string; describes: string }[] = [
   { key: 'ACC', name: 'Accuracy', ability: 'Metronome', describes: 'completion rate' },
-  { key: 'HND', name: 'Hands', ability: 'Glue Hands', describes: 'catch rate' },
+  { key: 'HND', name: 'Catching', ability: 'Glue Hands', describes: 'catch rate' },
   { key: 'USG', name: 'Usage', ability: 'Offensive Hub', describes: 'share of the touches while on the field' },
   { key: 'SCR', name: 'Scoring', ability: 'Endzone Magnet', describes: 'goals per point' },
   { key: 'PLY', name: 'Playmaking', ability: 'Dime Merchant', describes: 'assists and hockey assists per point' },
@@ -89,6 +105,7 @@ export interface PlayerRating {
 export interface RatingsData {
   timeline: string[];
   players: PlayerRating[];
+  teamHistory: (number | null)[]; // points-weighted team overall at the end of each tournament
 }
 
 const clampRating = (z: number) =>
@@ -274,8 +291,9 @@ export function computeRatings(games: Game[]): RatingsData {
     const careerSnaps = careerByPlayer.get(player) || [];
     const growth = snaps.length > TREND_GAMES ? latest.ovr - snaps[snaps.length - 1 - TREND_GAMES].ovr : null;
 
-    const devTrait: DevTrait =
-      growth === null
+    const devTrait: DevTrait = NAMED_X_FACTORS.has(player)
+      ? 'X-Factor'
+      : growth === null
         ? 'Hidden'
         : latest.ovr >= X_FACTOR_OVR
           ? 'X-Factor'
@@ -315,5 +333,23 @@ export function computeRatings(games: Game[]): RatingsData {
   }
 
   players.sort((a, b) => b.ovr - a.ovr || a.player.localeCompare(b.player));
-  return { timeline, players };
+
+  // Like a Madden team rating, regulars count more than cameos: each player's
+  // overall at the end of a tournament is weighted by the points they played in it.
+  const teamHistory = timeline.map((tournament, ti) => {
+    let weighted = 0;
+    let points = 0;
+    for (const rating of players) {
+      const ovr = rating.history[ti].ovr;
+      if (ovr === null) continue;
+      const played = (lines.get(rating.player) || [])
+        .filter((g) => g.tournament === tournament)
+        .reduce((sum, g) => sum + g.line.pts, 0);
+      weighted += ovr * played;
+      points += played;
+    }
+    return points > 0 ? weighted / points : null;
+  });
+
+  return { timeline, players, teamHistory };
 }
