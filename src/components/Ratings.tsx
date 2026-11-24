@@ -15,6 +15,7 @@ import {
   DEV_TRAITS,
   HALF_LIFE_GAMES,
   MIN_RATED_POINTS,
+  OVR_CENTER,
   OVR_FLOOR,
 } from '@/lib/ratings';
 
@@ -50,7 +51,7 @@ export function Ratings() {
       <div>
         <h2 className="text-2xl font-bold text-purple-100 mb-1">Ratings</h2>
         <p className="text-sm text-purple-400/60 max-w-3xl">
-          Graded against every performance in team history. A typical performance is a 77, nobody
+          Graded against every performance in team history. A typical performance is a {OVR_CENTER}, nobody
           rates below {OVR_FLOOR}, and 90+ is rare. Updated after every game, with older games fading,
           so a game from one tournament ago counts half as much as this weekend&apos;s.
         </p>
@@ -193,9 +194,9 @@ export function Ratings() {
           {MIN_RATED_POINTS} points of recent playing time to be rated at all.
         </p>
         <p>
-          Overall weights the attributes by archetype, which comes from how much of a player&apos;s
-          touches are throws: handlers lean on accuracy, usage, and playmaking, cutters on scoring and
-          hands, hybrids on a mix.
+          Overall blends two sets of weights by how much of a player&apos;s touches are throws: a pure
+          handler leans on accuracy, playmaking, and usage, a pure cutter on scoring, catching, and
+          defense, and everyone in between gets a mix in proportion.
         </p>
         <p>Older games fade with a half-life of {HALF_LIFE_GAMES} games.</p>
       </div>
