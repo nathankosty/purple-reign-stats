@@ -80,9 +80,14 @@ export const ATTRIBUTES: { key: Attr; name: string; describes: string }[] = [
 // there is no cliff where one point of throw share swings an overall.
 const CUTTER_WEIGHTS: Record<Attr, number> = { ACC: 0.1, USG: 0.1, PLY: 0.1, HND: 0.2, SCR: 0.32, DEF: 0.18 };
 const HANDLER_WEIGHTS: Record<Attr, number> = { ACC: 0.27, USG: 0.22, PLY: 0.24, HND: 0.05, SCR: 0.05, DEF: 0.17 };
-// The same lines the archetype labels use.
+// Where the blend is fully cutter and fully handler.
 const CUTTER_SHARE = 0.42;
 const HANDLER_SHARE = 0.55;
+
+// The archetype label is separate from the weights: Hybrid is a narrow band
+// around an even split, so it means a player who genuinely does both.
+const CUTTER_LABEL_SHARE = 0.46;
+const HANDLER_LABEL_SHARE = 0.5;
 
 function weightsFor(throwShare: number): Record<Attr, number> {
   const t = Math.min(1, Math.max(0, (throwShare - CUTTER_SHARE) / (HANDLER_SHARE - CUTTER_SHARE)));
@@ -385,7 +390,7 @@ export function computeRatings(
   const throwShareOf = (s: Line) => s.throws / Math.max(1, s.throws + s.catches + s.drops);
   const archetypeOf = (s: Line): Archetype => {
     const share = throwShareOf(s);
-    return share >= HANDLER_SHARE ? 'Handler' : share <= CUTTER_SHARE ? 'Cutter' : 'Hybrid';
+    return share >= HANDLER_LABEL_SHARE ? 'Handler' : share <= CUTTER_LABEL_SHARE ? 'Cutter' : 'Hybrid';
   };
 
   const decay = 2 ** (-1 / HALF_LIFE_GAMES);
