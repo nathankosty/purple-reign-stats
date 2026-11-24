@@ -34,7 +34,7 @@ export const NAMED_X_FACTORS = new Set(['Jack']);
 export const DEV_TRAITS: { trait: DevTrait; meaning: string }[] = [
   {
     trait: 'X-Factor',
-    meaning: `Elite. A current overall of ${X_FACTOR_OVR}+, or named by the captain. Their best ability becomes a zone ability.`,
+    meaning: 'Elite: the team\u2019s top tier. Their best ability becomes a zone ability.',
   },
   { trait: 'Superstar', meaning: `Rising fast: up ${SUPERSTAR_GROWTH}+ overall across their last ${TREND_GAMES} games.` },
   { trait: 'Star', meaning: `Improving: up ${STAR_GROWTH} to ${SUPERSTAR_GROWTH - 1} across their last ${TREND_GAMES} games.` },
