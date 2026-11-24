@@ -9,12 +9,25 @@ const IGNORED_PLAYERS = new Set(['Default']);
 export const HALF_LIFE_GAMES = 5;
 // A rating needs this many points of (decayed) playing time behind it.
 export const MIN_RATED_POINTS = 20;
-// Ratings are graded against every rated snapshot in team history:
+// Attributes are graded against every rated snapshot in team history:
 // 70 is a typical performance and each 10 points is one standard deviation.
 const SCALE_MEAN = 70;
 const SCALE_SD = 10;
 const FLOOR = 40;
 const CEILING = 99;
+
+// Overall uses its own, friendlier display scale over the same ranking: the
+// team's historical average shows as 77, each standard deviation above adds 7,
+// each below takes 5, and nobody shows lower than 70.
+export const OVR_FLOOR = 70;
+const OVR_CENTER = 77;
+const OVR_PER_SD_ABOVE = 7;
+const OVR_PER_SD_BELOW = 5;
+const overallFromZ = (z: number) =>
+  Math.min(
+    CEILING,
+    Math.max(OVR_FLOOR, Math.round(OVR_CENTER + (z >= 0 ? OVR_PER_SD_ABOVE : OVR_PER_SD_BELOW) * z))
+  );
 
 export type Attr = 'ACC' | 'HND' | 'USG' | 'SCR' | 'PLY' | 'DEF';
 export type Archetype = 'Handler' | 'Hybrid' | 'Cutter';
@@ -25,10 +38,10 @@ const ACTIVE_WINDOW_GAMES = 15; // team games; roughly the last three tournament
 const X_FACTOR_OVR = 90;
 // A trait can be earned by level or by growth, so a player who has plateaued
 // at a high level is still recognized, and so is one climbing fast from below.
-const SUPERSTAR_OVR = 82;
-const SUPERSTAR_GROWTH = 10;
-const STAR_OVR = 72;
-const STAR_GROWTH = 4;
+const SUPERSTAR_OVR = 85;
+const SUPERSTAR_GROWTH = 6;
+const STAR_OVR = 78;
+const STAR_GROWTH = 3;
 
 // Players the captain names as X-Factors regardless of the numbers. Some of
 // what makes a player great never shows up in the event log.
@@ -319,7 +332,7 @@ function rateSnapshots(snapshots: Snapshot[]): void {
     s.ovrRaw = ATTRIBUTES.reduce((sum, { key }) => sum + w[key] * s.z[key], 0);
   }
   const { mean, sd } = meanSd(rated.map((s) => s.ovrRaw));
-  for (const s of rated) s.ovr = clampRating((s.ovrRaw - mean) / sd);
+  for (const s of rated) s.ovr = overallFromZ((s.ovrRaw - mean) / sd);
 }
 
 export function computeRatings(
