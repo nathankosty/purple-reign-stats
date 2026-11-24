@@ -189,7 +189,8 @@ export function Ratings() {
       <div className="bg-[#1a0f2e]/60 border border-purple-800/30 rounded-xl p-4 text-xs text-purple-300/80 space-y-2 max-w-3xl">
         <p className="font-semibold text-purple-200">How the ratings work</p>
         <p>
-          {ATTRIBUTES.map((a) => `${a.name} is ${a.describes}`).join('; ')}. Every rate is pulled
+          {ATTRIBUTES.map((a) => `${a.name} is ${a.describes}`).join('; ')}. An average attribute shows
+          as 78, and below average a rating levels off in the high 60s rather than dropping away. Every rate is pulled
           toward the team average until there is enough playing time behind it, and a player needs{' '}
           {MIN_RATED_POINTS} points of recent playing time to be rated at all.
         </p>
