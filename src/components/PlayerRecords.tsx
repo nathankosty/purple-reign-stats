@@ -12,6 +12,8 @@ import {
 } from '@/lib/connections';
 import { rankPlayer } from '@/lib/teamStats';
 import { RankLine } from './RankLine';
+import { PlayerDevelopment } from './PlayerDevelopment';
+import { computeDevelopment } from '@/lib/development';
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -153,6 +155,11 @@ export function PlayerRecords() {
     [connections, selectedPlayer]
   );
 
+  const development = useMemo(
+    () => computeDevelopment(games, playerScores),
+    [games, playerScores]
+  );
+
   // The same ranking the Tournaments tab shows for an MVP, one row per
   // tournament this player actually played, newest first.
   const byTournament = useMemo(() => {
@@ -232,6 +239,8 @@ export function PlayerRecords() {
           </div>
         </div>
       )}
+
+      {selectedPlayer && <PlayerDevelopment player={selectedPlayer} data={development} />}
 
       {selectedPlayer && byTournament.length > 0 && (
         <div className="bg-[#1a0f2e]/80 border border-purple-800/30 rounded-xl overflow-hidden mb-4">

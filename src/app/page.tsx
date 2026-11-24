@@ -7,12 +7,20 @@ import { Sidebar } from '@/components/Sidebar';
 import { TopPointsList } from '@/components/TopPointsList';
 import { RecordsBoard } from '@/components/RecordsBoard';
 import { TeamStats } from '@/components/TeamStats';
+import { Development } from '@/components/Development';
 import { PlayerRecords } from '@/components/PlayerRecords';
 import { RoleManager } from '@/components/RoleManager';
 import { HallOfShame } from '@/components/HallOfShame';
 import { Filters } from '@/lib/types';
 
-type Tab = 'points' | 'tournaments' | 'records' | 'player-records' | 'roles' | 'shame';
+type Tab =
+  | 'points'
+  | 'tournaments'
+  | 'development'
+  | 'records'
+  | 'player-records'
+  | 'roles'
+  | 'shame';
 
 
 
@@ -70,6 +78,19 @@ function AppContent() {
         >
           Tournaments
           {tab === 'tournaments' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 rounded-full" />
+          )}
+        </button>
+        <button
+          onClick={() => setTab('development')}
+          className={`px-5 py-2.5 text-sm font-medium transition-colors relative ${
+            tab === 'development'
+              ? 'text-purple-200'
+              : 'text-purple-400/50 hover:text-purple-300'
+          }`}
+        >
+          Development
+          {tab === 'development' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 rounded-full" />
           )}
         </button>
@@ -163,6 +184,7 @@ function AppContent() {
         )}
 
         {tab === 'tournaments' && <TeamStats />}
+        {tab === 'development' && <Development />}
         {tab === 'records' && <RecordsBoard />}
         {tab === 'player-records' && <PlayerRecords />}
         {tab === 'roles' && <RoleManager />}
