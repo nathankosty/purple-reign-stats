@@ -195,9 +195,11 @@ export function Ratings() {
           {MIN_RATED_POINTS} points of recent playing time to be rated at all.
         </p>
         <p>
-          Overall blends two sets of weights by how much of a player&apos;s touches are throws: a pure
-          handler leans on accuracy, playmaking, and usage, a pure cutter on scoring, catching, and
-          defense, and everyone in between gets a mix in proportion.
+          Every player is rated at all three positions. A handler&apos;s overall leans on accuracy,
+          playmaking, and usage, a cutter&apos;s on scoring, catching, and defense, and a hybrid&apos;s on an
+          even mix. Each is graded against everyone&apos;s history at that position, and the main overall
+          is the best of the three. The Handler, Hybrid, or Cutter label on a card describes how a player
+          actually plays, from the share of their touches that are throws.
         </p>
         <p>Older games fade with a half-life of {HALF_LIFE_GAMES} games.</p>
       </div>
