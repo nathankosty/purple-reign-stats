@@ -63,7 +63,14 @@ export function RatingCard({ rating, compact = false }: { rating: PlayerRating; 
   return (
     <div className="bg-[#1a0f2e]/80 border border-purple-800/30 rounded-xl overflow-hidden">
       <div className="px-4 pt-4 pb-3 flex items-start gap-4">
-        <div className="text-center shrink-0">
+        <div
+          className="text-center shrink-0"
+          title={
+            rating.provisional
+              ? 'Still firming up: pulled toward average until there is more recent playing time'
+              : undefined
+          }
+        >
           <div className="text-4xl font-bold text-purple-50 leading-none">{rating.ovr}</div>
           <div className="text-[10px] text-purple-400/60 uppercase tracking-wider mt-1">Overall</div>
         </div>
