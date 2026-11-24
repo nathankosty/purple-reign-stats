@@ -17,10 +17,10 @@ const FLOOR = 40;
 const CEILING = 99;
 
 // Overall uses its own, friendlier display scale over the same ranking: the
-// team's historical average shows as 77, each standard deviation above adds 7,
+// team's historical average shows as 78, each standard deviation above adds 7,
 // each below takes 5, and nobody shows lower than 70.
 export const OVR_FLOOR = 70;
-const OVR_CENTER = 77;
+export const OVR_CENTER = 78;
 const OVR_PER_SD_ABOVE = 7;
 const OVR_PER_SD_BELOW = 5;
 const overallFromZ = (z: number) =>
@@ -74,13 +74,24 @@ export const ATTRIBUTES: { key: Attr; name: string; describes: string }[] = [
   { key: 'DEF', name: 'Defense', describes: 'Ds per point' },
 ];
 
-// What each archetype's overall leans on. Handlers are judged on moving the
-// disc, cutters on finishing, hybrids on a bit of both.
-const WEIGHTS: Record<Archetype, Record<Attr, number>> = {
-  Handler: { ACC: 0.25, USG: 0.3, PLY: 0.2, HND: 0.05, SCR: 0.05, DEF: 0.15 },
-  Hybrid: { ACC: 0.2, USG: 0.25, PLY: 0.15, HND: 0.1, SCR: 0.15, DEF: 0.15 },
-  Cutter: { ACC: 0.1, USG: 0.15, PLY: 0.1, HND: 0.2, SCR: 0.3, DEF: 0.15 },
-};
+// What an overall leans on at the two ends of the throwing spectrum: handlers
+// are judged on moving the disc, cutters on finishing. Every player's weights
+// are blended between the two by how much of their touches are throws, so
+// there is no cliff where one point of throw share swings an overall.
+const CUTTER_WEIGHTS: Record<Attr, number> = { ACC: 0.1, USG: 0.1, PLY: 0.1, HND: 0.2, SCR: 0.32, DEF: 0.18 };
+const HANDLER_WEIGHTS: Record<Attr, number> = { ACC: 0.27, USG: 0.22, PLY: 0.24, HND: 0.05, SCR: 0.05, DEF: 0.17 };
+// The same lines the archetype labels use.
+const CUTTER_SHARE = 0.42;
+const HANDLER_SHARE = 0.55;
+
+function weightsFor(throwShare: number): Record<Attr, number> {
+  const t = Math.min(1, Math.max(0, (throwShare - CUTTER_SHARE) / (HANDLER_SHARE - CUTTER_SHARE)));
+  const blended = {} as Record<Attr, number>;
+  for (const key of Object.keys(CUTTER_WEIGHTS) as Attr[]) {
+    blended[key] = CUTTER_WEIGHTS[key] * (1 - t) + HANDLER_WEIGHTS[key] * t;
+  }
+  return blended;
+}
 
 const FIELDS = [
   'pts', 'comp', 'tas', 'catches', 'drops', 'goals', 'ast', 'hast', 'ds', 'touches', 'slots', 'throws',
@@ -101,6 +112,7 @@ interface Snapshot {
   sums: Line;
   attrRaw: Record<Attr, number>;
   archetype: Archetype;
+  throwShare: number;
   rated: boolean;
   z: Record<Attr, number>;
   attrs: Record<Attr, number>;
@@ -328,7 +340,7 @@ function rateSnapshots(snapshots: Snapshot[]): void {
     }
   }
   for (const s of rated) {
-    const w = WEIGHTS[s.archetype];
+    const w = weightsFor(s.throwShare);
     s.ovrRaw = ATTRIBUTES.reduce((sum, { key }) => sum + w[key] * s.z[key], 0);
   }
   const { mean, sd } = meanSd(rated.map((s) => s.ovrRaw));
@@ -370,9 +382,10 @@ export function computeRatings(
     PLY: (s.ast + 0.5 * s.hast + 20 * base.ply) / (s.pts + 20),
     DEF: (s.ds + 20 * base.def) / (s.pts + 20),
   });
+  const throwShareOf = (s: Line) => s.throws / Math.max(1, s.throws + s.catches + s.drops);
   const archetypeOf = (s: Line): Archetype => {
-    const share = s.throws / Math.max(1, s.throws + s.catches + s.drops);
-    return share >= 0.55 ? 'Handler' : share <= 0.42 ? 'Cutter' : 'Hybrid';
+    const share = throwShareOf(s);
+    return share >= HANDLER_SHARE ? 'Handler' : share <= CUTTER_SHARE ? 'Cutter' : 'Hybrid';
   };
 
   const decay = 2 ** (-1 / HALF_LIFE_GAMES);
@@ -400,6 +413,7 @@ export function computeRatings(
           sums,
           attrRaw: attrRaw(sums),
           archetype: archetypeOf(sums),
+          throwShare: throwShareOf(sums),
           rated: sums.pts >= MIN_RATED_POINTS,
           z: {} as Record<Attr, number>,
           attrs: {} as Record<Attr, number>,
