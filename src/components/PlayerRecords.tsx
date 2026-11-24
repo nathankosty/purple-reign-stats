@@ -14,6 +14,8 @@ import { rankPlayer } from '@/lib/teamStats';
 import { RankLine } from './RankLine';
 import { PlayerDevelopment } from './PlayerDevelopment';
 import { computeDevelopment } from '@/lib/development';
+import { computeRatings } from '@/lib/ratings';
+import { PlayerRating } from './PlayerRating';
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -159,6 +161,7 @@ export function PlayerRecords() {
     () => computeDevelopment(games, playerScores),
     [games, playerScores]
   );
+  const ratings = useMemo(() => computeRatings(games), [games]);
 
   // The same ranking the Tournaments tab shows for an MVP, one row per
   // tournament this player actually played, newest first.
@@ -238,6 +241,13 @@ export function PlayerRecords() {
             </p>
           </div>
         </div>
+      )}
+
+      {selectedPlayer && (
+        <PlayerRating
+          rating={ratings.players.find((r) => r.player === selectedPlayer)}
+          timeline={development.timeline}
+        />
       )}
 
       {selectedPlayer && <PlayerDevelopment player={selectedPlayer} data={development} />}

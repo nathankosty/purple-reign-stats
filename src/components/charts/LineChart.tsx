@@ -21,6 +21,7 @@ interface LineChartProps {
   format: (value: number) => string;
   ariaLabel: string;
   sizeLabel?: string; // what `sizes` means, for the tooltip and table
+  domainMin?: number; // lines don't need a zero baseline; a bounded scale can start at its floor
 }
 
 // Drawn in a fixed coordinate space and scaled to the container.
@@ -46,13 +47,13 @@ function niceTicks(min: number, max: number, count = 4): number[] {
   return ticks;
 }
 
-export function LineChart({ categories, series, format, ariaLabel, sizeLabel }: LineChartProps) {
+export function LineChart({ categories, series, format, ariaLabel, sizeLabel, domainMin }: LineChartProps) {
   const [hover, setHover] = useState<number | null>(null);
   const [showTable, setShowTable] = useState(false);
 
   const layout = useMemo(() => {
     const all = series.flatMap((s) => s.values.filter((v): v is number => v !== null));
-    const ticks = niceTicks(Math.min(0, ...all), Math.max(...all, 0.0001));
+    const ticks = niceTicks(domainMin ?? Math.min(0, ...all), Math.max(...all, 0.0001));
     const yMin = ticks[0];
     const yMax = ticks[ticks.length - 1];
     const plotW = W - M.left - M.right;
@@ -82,7 +83,7 @@ export function LineChart({ categories, series, format, ariaLabel, sizeLabel }: 
     const collide = placed.some((a, ai) => placed.some((b, bi) => ai < bi && Math.abs(a.y - b.y) < 14));
 
     return { ticks, x, y, step, plotH, radius, groups, ends, directLabels: !collide };
-  }, [categories, series]);
+  }, [categories, series, domainMin]);
 
   const { ticks, x, y, step, plotH, radius, groups, ends, directLabels } = layout;
 
