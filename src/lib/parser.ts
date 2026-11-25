@@ -23,15 +23,25 @@ interface CsvRow {
   [key: string]: string;
 }
 
+// The stat keeper accidentally created two trackers for the same player.
+// Every alias maps to one name here, before anything else sees it.
+const PLAYER_ALIASES: Record<string, string> = {
+  Drew: 'Drew M',
+};
+
+function canonicalName(name: string): string {
+  return PLAYER_ALIASES[name] ?? name;
+}
+
 function extractPlayersOnField(row: CsvRow): string[] {
-  const players: string[] = [];
+  const players = new Set<string>();
   for (let i = 0; i <= 27; i++) {
     const val = row[`Player ${i}`];
     if (val && val.trim() && val.trim() !== 'Anonymous') {
-      players.push(val.trim());
+      players.add(canonicalName(val.trim()));
     }
   }
-  return players;
+  return Array.from(players);
 }
 
 function parseRow(row: CsvRow): RawEvent | null {
@@ -41,9 +51,9 @@ function parseRow(row: CsvRow): RawEvent | null {
   const eventType = row['Event Type']?.trim();
   if (eventType !== 'Offense' && eventType !== 'Defense') return null;
 
-  const passer = row['Passer']?.trim() || '';
-  const receiver = row['Receiver']?.trim() || '';
-  const defender = row['Defender']?.trim() || '';
+  const passer = canonicalName(row['Passer']?.trim() || '');
+  const receiver = canonicalName(row['Receiver']?.trim() || '');
+  const defender = canonicalName(row['Defender']?.trim() || '');
 
   return {
     dateTime: row['Date/Time']?.trim() || '',
