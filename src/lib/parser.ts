@@ -27,6 +27,7 @@ interface CsvRow {
 // Every alias maps to one name here, before anything else sees it.
 const PLAYER_ALIASES: Record<string, string> = {
   Drew: 'Drew M',
+  'Drew 2': 'Drew B',
 };
 
 function canonicalName(name: string): string {
